@@ -5,9 +5,9 @@ The child names an intended guardian and sends a request; the guardian clicks
 Accept child. The child applies closed defaults and returns its new family state
 automatically. Neither side needs to type an operation ID or manually sync.
 
-The working demo uses isolated fixtures. **Live identity/routing/bootstrap gates
-are still open**; Core does not activate a live transport. No two-account or
-real-client verification is claimed by this change.
+Kinward starts its live connection and supported chat monitoring automatically
+after the character enters the world. The demo uses isolated fixtures. Actual
+engine delivery, taint and coverage still require two-account/client testing.
 
 ## Try the demo
 
@@ -22,7 +22,7 @@ The development simulator is left staged for this checkout. Reload, then run
    list and Permissions becomes editable with closed defaults. Decline is also
    available; it grants nothing.
 
-In a future verified live installation, an incoming request prints a guardian
+In the live addon, an incoming request prints a guardian
 notification and opens/focuses the live Family dashboard when it belongs to the
 verified live profile. Existing windows are reused. Duplicates do not reopen it.
 The simulator keeps endpoint switching explicit so a synthetic parent's window
@@ -36,7 +36,7 @@ parent2 has no policy/history access. Membership changes sync automatically.
 
 ## Names and consent
 
-Choose the child/kinward roles once during setup. The candidate resolves only current verified Battle.net friends. Full BattleTag,
+Choose the child/guardian roles once during setup. The candidate resolves only current verified Battle.net friends. Full BattleTag,
 current online character name, or Name-Realm can identify a friend; ambiguous,
 missing, inaccessible or incomplete lookup data never guesses account ownership.
 Full names/BattleTags are recommended where character names collide. Offline
@@ -118,56 +118,49 @@ arrival while Family is hidden, popup behavior, receiver identity, reconnect,
 restricted states and taint. Record Forever and Retail separately. Simulated or
 mocked success does not close the live gates.
 
-## Right-click selection and explicit Retail live tests
+## Right-click selection and automatic connection
 
 Right-click a player portrait, party/raid member, chat player or friend and choose
 **Kinward: Pair with player**. This opens Family. In the Child role, the selected
 name and realm (or BattleTag from a Battle.net friend menu) fill the guardian
 field. Review the resolved account and click Request guardianship. Selecting a
 menu item never sends a request or grants access. Guardians instruct the selected
-child to request them; the existing child-request/guardian-accept handshake stays
-unchanged. Character selections retain their explicit realm. Ambiguous short
-names still require a full name/BattleTag. A verified BattleTag remains usable
-when unrelated character aliases are inaccessible.
+child to request them; the child-request/guardian-accept handshake stays intact.
 
-The default alpha remains inert. For a test between two consenting Retail
-accounts, with Kinward installed on both and the accounts Battle.net friends:
+There is no activation command, verified flag or test-mode requirement. Core
+starts Runtime.lua from PLAYER_ENTERING_WORLD after SavedVariables initialize.
+It installs chat monitoring even while Battle.net is connecting and retries
+missing player/Battle.net identity every two seconds and on BN_CONNECTED.
+Dashboard models attach to the same shared live transport and chat adapter.
+Fresh login creates a new session token; reload retains the saved session token.
+The runtime token generator combines engine player GUID, server/precise time and
+a durable local counter. It is not a secret used instead of Battle.net sender
+authentication: peer identities still come from current engine friendships.
 
-1. Enable Lua errors with `/console scriptErrors 1` on both clients. Open
-   `/kinward ui`, select Child role on one and Guardian role on the other.
-2. Run `/kinward test start` on **both** clients after entering the world. This
-   explicitly starts candidate Battle.net transport and ordinary whisper/party
-   capture/filter/send adapters. It does not record any acceptance gate as passed.
-   Test activation is not saved; repeat after each reload/login.
-3. On the child, right-click the parent's player name/portrait or Battle.net
-   friend entry, choose Kinward's pairing entry, review the account, and request.
-   On the parent, accept the child in Family. Confirm both dashboards report the
-   applied relationship before evaluating permissions.
-4. Use `/kinward test status` on each side to inspect activation/account and
-   engine-mapped incoming packet counts. Zero counts while requesting indicate
-   routing/mapping still needs real-client investigation. If names cannot resolve,
-   try the Battle.net friend context menu/full BattleTag and confirm friendship,
-   matching WoW project and online presence.
-5. In a party, test incoming and outgoing party permission separately. Test an
-   ordinary character whisper using a third consenting sender or the child's
-   own outgoing target. A guardian's verified account always bypasses whisper
-   restrictions, so guardian-to-child whispers are not a valid blocked-whisper
-   test. Confirm actual remote visibility as well as the local Activity view.
-6. Check Activity on the guardian and refresh history. Test expiry/reload,
-   friendship loss, changed characters and error/taint logs. General/Trade/LFG,
-   Battle.net whispers, voice, bubbles, cached sends and secret states are **not**
-   established coverage. Do not treat those controls as proof of enforcement.
-7. `/kinward test stop` removes owned filters/transport callbacks and then requires
-   `/reload` to clear wrapper taint. Saved supervision/permissions remain intact.
-   While inactive, this build does not enforce that saved policy.
+For a two-account check:
 
-The test token generator combines engine player GUID, server/precise time and a
-persisted local counter. It is deliberately labeled a test generator, not a
-verified production entropy/identity/session implementation. Starting a test
-creates a fresh test session, so old session grants expire. Real incoming sender
-ID semantics, payload restrictions, taint and lifecycle correctness still need
-your actual two-account results. This is a test facility, not a verified release
-activation path.
+1. Install the same build on both clients, enable Lua errors with
+   `/console scriptErrors 1`, and log in or `/reload`.
+2. Open `/kinward ui`; select Child role on one and Guardian role on the other.
+   Both accounts must be Battle.net friends and online in the same WoW version.
+3. On the child, select the parent from a right-click menu, review the account,
+   and request guardianship. On the parent, accept in Family.
+4. The child form displays delivery progress: queued, sent, received or blocked.
+   `/kinward status` and Connection report sent/received packets, unmapped engine
+   senders and API send results. These diagnostics contain no captured message
+   bodies. Zero received packets indicates a delivery issue; unmapped packets
+   indicate a sender-mapping issue. Unknown/untrusted sender packets are discarded.
+5. Confirm the relationship on both clients, then test independent read/send
+   party controls, whisper grants, Requests and Activity. Guardian account
+   whispers always bypass restrictions, so use a third consenting sender or an
+   outgoing non-guardian target to test blocked whispers.
+6. Reload and check automatic reconnection and session grants. General/Trade/LFG,
+   Battle.net whispers, bubbles, voice, cached sends and secret states are not
+   established coverage. Actual remote visibility and taint need client checks.
+
+The former `/kinward test start|status|stop` path has been removed. Normal login
+now starts the actual adapters. No tests or source inspection are claimed as
+real-client delivery/coverage acceptance.
 
 Pinned Forever API evidence (Gethe 17ed2c3e8471cdc3806ab0d26a082be7c67d3d7c,
 under `reference/blizzard-ui/Interface/AddOns/`):
@@ -184,7 +177,7 @@ under `reference/blizzard-ui/Interface/AddOns/`):
 - `Blizzard_AddFriend/AddFriendTemplates.lua`: `BNGetInfo` BattleTag return.
 - `Blizzard_Console/Blizzard_Console.lua`: `GetTimePreciseSec`.
 
-Source evidence permits implementing the test boundary; it is not proof that
+Source evidence permits implementing the runtime boundary; it is not proof that
 Forever or Retail runtime acceptance passed. Automated tests cover real candidate
 adapters on two independent mocked clients, menu identity/selection, cross-realm
-pairing, applied permission updates, startup idempotence and teardown.
+pairing, applied permission updates, automatic startup, delayed Battle.net readiness and reload/new-login sessions.

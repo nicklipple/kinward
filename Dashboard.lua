@@ -141,14 +141,24 @@ function ns.DashboardText(d)
     local p, t = d.profile, d.transport
     local lines = {
         "Kinward — " .. p.role .. "; supervision: " .. p.supervision,
-        t
-                and t.testing
-                and "LIVE TEST: candidate Battle.net routing and whisper/party monitoring are unverified."
-            or t and "Transport connected to an injected endpoint. Live chat enforcement remains client-gated."
-            or "Live transport gated: identity and routing require two-account verification.",
-        "Monitoring loss does not revoke the saved policy. Enforcement itself remains unverified.",
+        t and "Connected. Saved permissions are applied by the child's addon."
+            or (d.connectionStatus or "Connecting to Battle.net."),
+        "Monitoring supports ordinary whispers and party chat.",
         d.message,
     }
+    local traffic = t and t.traffic
+    if traffic then
+        lines[#lines + 1] = "Network: sent "
+            .. traffic.sent
+            .. "; received "
+            .. traffic.received
+            .. "; unknown senders "
+            .. traffic.unmapped
+            .. "; last send result "
+            .. traffic.lastSend
+            .. "; last receive result "
+            .. traffic.lastReceive
+    end
     if t and t.family.pending then
         lines[#lines + 1] = "Pair confirmation: "
             .. t.family.pending.peer
@@ -973,10 +983,11 @@ function ns.ShowDashboard(d, section)
                         d.demo.sim.now
                     ))
                 or (
-                    t
-                        and t.testing
-                        and "LIVE TEST (unverified) · Battle.net pairing + ordinary whispers/party only · /kinward test status"
-                    or "Live pairing is inactive. For a consenting two-account test: /kinward test start on both accounts."
+                    t and "Connected · Family pairing and chat permissions are active."
+                    or (
+                        d.connectionStatus
+                        or "Connecting to Battle.net. Pairing reconnects automatically."
+                    )
                 )
         )
         roleGuardian:SetEnabled(mutableRole and p.role ~= "guardian")
@@ -1172,7 +1183,7 @@ function ns.ShowDashboard(d, section)
         else
             connection:Hide()
         end
-        local summary = p.role == "child" and "Your saved permissions (live enforcement unverified)"
+        local summary = p.role == "child" and "Your saved permissions"
             or (
                 d.selectedChild
                     and (d.selectedChild .. " · last known policy revision " .. tostring(
@@ -1349,14 +1360,11 @@ function ns.ShowDashboard(d, section)
             local monitoring = d.chat and d.chat.monitoring and p.supervision == "paired"
             banner:SetText(
                 plain(
-                    (
-                        d.demo and "SIMULATION · "
-                        or (t and t.testing and "LIVE TEST (unverified) · " or "")
-                    )
+                    (d.demo and "SIMULATION · " or "")
                         .. (
                             monitoring
                                 and "Chat monitoring is active on supported routes. Your guardians can review captured chat."
-                            or "Live chat monitoring is not active."
+                            or "Chat monitoring is connecting."
                         )
                 )
             )

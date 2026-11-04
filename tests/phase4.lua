@@ -108,12 +108,6 @@ local function policy(n, channel, direction, mode, seconds, parent, child)
     )
 end
 
-test("live gate makes no WoW calls without recorded routing acceptance", function()
-    local n = ns.NewNetworkSimulator()
-    local transport, reason = ns.NewWoWTransport(n.transports.child.family, "test", false)
-    assert(not transport and reason == "live-routing-unverified")
-end)
-
 test("dashboard pairing, confirmed supervision, sync and policy use shared transport", function()
     local n, t, child = paired()
     local item = policy(n, "party", "read")
@@ -456,7 +450,7 @@ test(
         for key, value in pairs(mocks) do
             rawset(env, key, value)
         end
-        local t = assert(ns.NewWoWTransport(n.transports.child.family, "test", true))
+        local t = assert(ns.NewWoWTransport(n.transports.child.family, "test"))
         assert(t.io.resolve("parent") == 41 and not t.io.resolve("stranger"))
         handle = 42
         assert(t.io.resolve("parent") == 42)

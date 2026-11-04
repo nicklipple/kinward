@@ -149,7 +149,7 @@ local function profile()
     return p
 end
 local function start(p)
-    local a, reason = ns.NewWoWChat(p, ioAdapter, true)
+    local a, reason = ns.NewWoWChat(p, ioAdapter)
     assert(a, reason)
     return a, frames[#frames]
 end
@@ -178,12 +178,6 @@ local function output(f, line)
 end
 local indefinite = { mode = "indefinite" }
 
-test("unverified activation does not touch any client API", function()
-    local old = #frames
-    local a, reason = ns.NewWoWChat(profile(), ioAdapter, false)
-    assert(not a and reason == "chat-client-unverified" and #frames == old)
-    assert(env.C_ChatInfo.SendChatMessage == original and not next(filters))
-end)
 test("closed incoming party and whisper decisions are shared across windows", function()
     local a = start(profile())
     assert(incoming("CHAT_MSG_WHISPER", "Stranger", 1))
@@ -324,7 +318,7 @@ test("unavailable lifecycle and repeated login tokens cannot revive session gran
         freshSession = function()
             return "previous"
         end,
-    }, true))
+    }))
     local f = frames[#frames]
     enter(f, true, false)
     assert(p.sessionId == nil and incoming("CHAT_MSG_PARTY", "Friend", 1))
@@ -420,7 +414,7 @@ test("original send failures remain attempted sends without observed output", fu
 end)
 test("teardown preserves other addons' wrappers and prevents duplicate installation", function()
     local a, f = start(profile())
-    local duplicate, reason = ns.NewWoWChat(profile(), ioAdapter, true)
+    local duplicate, reason = ns.NewWoWChat(profile(), ioAdapter)
     assert(not duplicate and reason == "chat-already-active")
     local downstream = env.C_ChatInfo.SendChatMessage
     local other = function(...)

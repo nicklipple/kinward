@@ -6,11 +6,11 @@ local function test(name, body)
     passed = passed + 1
     print("ok - " .. name)
 end
-local function network()
+local function network(savedSession)
     local time, queue, clients = 1000, {}, {}
     local function client(id, role, character, realm)
         local ns, frames, menus, filters = {}, {}, {}, {}
-        local originalSends = 0
+        local originalSends, bnetReady = 0, true
         local env = {
             type = type,
             pairs = pairs,
@@ -31,7 +31,7 @@ local function network()
                 return 1
             end,
             BNGetInfo = function()
-                return 1, id
+                return 1, bnetReady and id or nil
             end,
             GetServerTime = function()
                 return time
@@ -55,6 +55,13 @@ local function network()
                 return realm
             end,
             print = function() end,
+            Minimap = false,
+            SlashCmdList = {},
+            C_AddOns = {
+                GetAddOnMetadata = function()
+                    return "0.1.0"
+                end,
+            },
             Menu = {
                 ModifyMenu = function(tag, callback)
                     menus[tag] = callback
@@ -128,21 +135,29 @@ local function network()
             end,
         })
         for line in io.lines("Kinward.toc") do
-            if line:match("%.lua$") and line ~= "Core.lua" then
+            if line:match("%.lua$") then
+                if line == "Core.lua" then
+                    local saved = ns.NormalizeSettings(nil)
+                    saved.role = role
+                    saved.sessionId = savedSession
+                    env.KinwardDB = saved
+                end
                 setfenv(assert(loadfile(line)), env)("Kinward", ns)
             end
         end
-        ns.initialized = true
-        ns.settings = ns.NormalizeSettings(nil)
-        ns.settings.role = role
         ns.ShowDashboard = function(d, section)
-            assert(d.profile == ns.settings and section == "family")
+            assert(d.profile == ns.settings and (section == nil or section == "family"))
         end
-        ns.OpenDashboard = function(section, target)
-            assert(section == "family")
-            ns.dashboard = ns.dashboard or ns.NewDashboard(ns.settings)
-            ns.dashboard.pairingTarget = target
+        local function dispatch(event, a, b, c, d)
+            local count = #frames
+            for i = 1, count do
+                local f = frames[i]
+                if f.events[event] then
+                    f.scripts.OnEvent(f, event, a, b, c, d)
+                end
+            end
         end
+        dispatch("ADDON_LOADED", "Kinward")
         local c = {
             ns = ns,
             env = env,
@@ -158,6 +173,13 @@ local function network()
             end,
             connect = function(p)
                 peer = p
+            end,
+            dispatch = dispatch,
+            enter = function(initial, reload)
+                dispatch("PLAYER_ENTERING_WORLD", initial ~= false, reload == true)
+            end,
+            setBnet = function(ready)
+                bnetReady = ready
             end,
         }
         clients[id] = c
@@ -222,25 +244,30 @@ test("player menus retain realm/account identity, capture selection, and registe
     assert(not ns.PlayerMenuTarget({ name = { secret = true } }))
     assert(not ns.PlayerMenuTarget({ name = "|Hplayer:spoof" }))
     assert(not ns.PlayerMenuTarget({ unit = "player" }))
-    assert(not ns.liveTestTransport and not ns.chat)
+    assert(not ns.transport and not ns.chat)
 end)
 
 test(
-    "explicit live test pairs independent accounts across realms through real candidate adapters",
+    "normal login automatically pairs independent accounts across realms and applies permissions",
     function()
         local child, parent, advance = network()
         local c, p = child.ns, parent.ns
-        assert(c.LiveTestCommand("status"):find("inactive", 1, true))
-        assert(c.LiveTestCommand("start"):find("LIVE TEST", 1, true))
-        assert(p.LiveTestCommand("start"):find("LIVE TEST", 1, true))
-        local t = c.liveTestTransport
-        assert(c.LiveTestCommand("start"):find("LIVE TEST", 1, true) and c.liveTestTransport == t)
+        assert(not c.transport and not c.chat)
+        child.enter()
+        parent.enter()
+        assert(c.RuntimeStatus():find("Connected", 1, true))
+        assert(p.RuntimeStatus():find("Connected", 1, true))
+        local t = c.transport
+        child.enter(false, false)
+        assert(c.transport == t)
+        c.OpenDashboard("family", "Parent-Other Realm")
+        assert(c.dashboard.pairingTarget == "Parent-Other Realm")
         assert(c.ResolveGuardianPeer(t, "Parent-Other Realm") == "Parent#456")
-        assert(c.RequestGuardianship(t, "Parent-Other Realm"))
+        assert(c.RequestGuardianship(t, c.dashboard.pairingTarget))
         advance()
-        local request = p.liveTestTransport.family.guardianInbox["Child#123"]
+        local request = p.transport.family.guardianInbox["Child#123"]
         assert(request and request.state == "pending")
-        assert(p.AnswerGuardianship(p.liveTestTransport, "Child#123", request.token, true))
+        assert(p.AnswerGuardianship(p.transport, "Child#123", request.token, true))
         advance()
         assert(c.settings.supervision == "paired" and c.settings.guardians["Parent#456"])
         assert(p.settings.children["Child#123"])
@@ -254,14 +281,66 @@ test(
         advance()
         child.env.C_ChatInfo.SendChatMessage("allowed", "PARTY")
         assert(child.sends() == 1)
-        assert(c.LiveTestCommand("status"):find("received", 1, true))
-        assert(c.LiveTestCommand("stop"):find("stopped", 1, true))
-        assert(not c.chat and not c.liveTestTransport and c.dashboard.transport == nil)
+        assert(c.RuntimeStatus():find("received", 1, true))
         assert(c.settings.supervision == "paired")
-        for _, f in ipairs(child.frames) do
-            assert(not f.scripts.OnUpdate)
-        end
-        assert(not child.filters.CHAT_MSG_WHISPER)
+        -- No start command was used anywhere: actual Core login events connect
+        -- and attach the real adapters to a dashboard opened through the menu.
+        assert(c.transport == c.dashboard.transport and c.chat.chat == c.dashboard.chat)
     end
 )
-print(string.format("%d live-test boundary tests passed (mocked Lua %s)", passed, _VERSION))
+test("Battle.net startup retries automatically while chat monitoring stays installed", function()
+    local child, parent, advance = network()
+    child.setBnet(false)
+    child.enter()
+    parent.enter()
+    assert(child.ns.chat and not child.ns.transport)
+    assert(child.ns.RuntimeStatus():find("Battle.net", 1, true))
+    child.ns.OpenDashboard("family")
+    child.setBnet(true)
+    advance()
+    assert(child.ns.transport and child.ns.dashboard.transport == child.ns.transport)
+    local count = #child.frames
+    child.dispatch("BN_CONNECTED")
+    assert(#child.frames == count)
+end)
+
+test("reload preserves session grants and a fresh login expires them automatically", function()
+    local child, parent = network("saved-session")
+    child.enter(false, true)
+    parent.enter()
+    assert(child.ns.settings.sessionId == "saved-session")
+    assert(child.ns.chat and child.ns.transport)
+    local fresh = network("saved-session")
+    fresh.enter(true, false)
+    assert(fresh.ns.settings.sessionId ~= "saved-session")
+    local token = fresh.ns.settings.sessionId
+    fresh.enter(false, false)
+    assert(fresh.ns.settings.sessionId == token)
+end)
+
+test("unknown engine senders are diagnosed without creating pairing requests", function()
+    local child, parent = network()
+    child.enter()
+    parent.enter()
+    parent.dispatch("BN_CHAT_MSG_ADDON", "Kinward4", "untrusted", "", 999)
+    assert(parent.ns.transport.traffic.received == 1)
+    assert(parent.ns.transport.traffic.unmapped == 1)
+    assert(not next(parent.ns.transport.family.guardianInbox or {}))
+    assert(parent.ns.RuntimeStatus():find("unknown senders 1", 1, true))
+end)
+
+test("failed game-data sends remain visible rather than pretending request delivery", function()
+    local child, parent, advance = network()
+    child.enter()
+    parent.enter()
+    child.env.C_BattleNet.SendGameData = function()
+        return 12
+    end
+    assert(child.ns.RequestGuardianship(child.ns.transport, "Parent-Other Realm"))
+    advance()
+    assert(child.ns.transport.traffic.sent == 0)
+    assert(child.ns.RuntimeStatus():find("last send 12", 1, true))
+    assert(not next(parent.ns.transport.family.guardianInbox or {}))
+end)
+
+print(string.format("%d automatic runtime boundary tests passed (mocked Lua %s)", passed, _VERSION))

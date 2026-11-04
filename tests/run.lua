@@ -9,15 +9,25 @@ local function client(saved)
     local ns, messages, handlers, registered = {}, {}, {}, {}
     local frame = {}
     function frame:RegisterEvent(event)
-        assert(event == "ADDON_LOADED" or event == "PLAYER_LOGIN")
+        assert(
+            event == "ADDON_LOADED"
+                or event == "PLAYER_LOGIN"
+                or event == "PLAYER_ENTERING_WORLD"
+                or event == "BN_CONNECTED"
+        )
         registered[event] = true
     end
     function frame:UnregisterEvent(event)
-        assert(event == "ADDON_LOADED" or event == "PLAYER_LOGIN")
+        assert(
+            event == "ADDON_LOADED"
+                or event == "PLAYER_LOGIN"
+                or event == "PLAYER_ENTERING_WORLD"
+                or event == "BN_CONNECTED"
+        )
         registered[event] = nil
     end
     function frame:SetScript(script, handler)
-        assert(script == "OnEvent")
+        assert(script == "OnEvent" or script == "OnUpdate")
         handlers[script] = handler
     end
     setmetatable(frame, {

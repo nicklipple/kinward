@@ -215,7 +215,7 @@ SLASH_KINWARDSIM1 = "/kinwardsim"
 ---@field TransportReceive fun(t: KinwardTransport, peer: string, packet: unknown): boolean
 ---@field TransportTick fun(t: KinwardTransport)
 ---@field TransportPresence fun(t: KinwardTransport, peer: string): string, number?
----@field NewWoWTransport fun(family: KinwardFamily, instance: string, verified: boolean, testing?: boolean): KinwardTransport?, string
+---@field NewWoWTransport fun(family: KinwardFamily, instance: string): KinwardTransport?, string
 ---@field NewDashboard fun(profile: KinwardSettings, transport?: KinwardTransport, now?: KinwardClock, chat?: KinwardChat): KinwardDashboard
 ---@field DashboardCommand fun(d: KinwardDashboard, message: string): string
 ---@field DashboardText fun(d: KinwardDashboard): string
@@ -273,7 +273,7 @@ SLASH_KINWARDSIM1 = "/kinwardsim"
 ---@class KinwardNamespace
 ---@field NewChat fun(profile: KinwardSettings, context: fun(): KinwardContext): KinwardChat
 ---@field ChatDecision fun(chat: KinwardChat, channel: string, direction: 'read'|'send', identity?: KinwardIdentity, line?: number): boolean, string
----@field NewWoWChat fun(profile: KinwardSettings, io: KinwardChatIO, verified: boolean, testing?: boolean): KinwardWoWChat?, string
+---@field NewWoWChat fun(profile: KinwardSettings, io: KinwardChatIO): KinwardWoWChat?, string
 
 ---@class KinwardNamespace
 ---@field chat? KinwardWoWChat
@@ -505,15 +505,36 @@ SLASH_KINWARDSIM1 = "/kinwardsim"
 ---@field InstallPlayerMenu fun()
 ---@field PlayerMenuTarget fun(context: table): string?
 ---@field playerMenuInstalled? boolean
----@field LiveTestCommand fun(command: string): string
----@field liveTestTransport? KinwardTransport
+---@field StartRuntime fun(): boolean
+---@field RuntimeStatus fun(): string
+---@field transport? KinwardTransport
+---@field runtimeStatus? string
+---@field runtimeSession? string
+---@field runtimeWorldReady? boolean
+---@field runtimeReload? boolean
 
 ---@class KinwardTransport
----@field testing? boolean
----@field testReceived? number
+---@field received? number
 
 ---@class KinwardSettings
----@field liveTestCounter? number
+---@field liveTestCounter? number Legacy counter migrated on first startup.
+---@field runtimeCounter? number
 
 ---@class KinwardDashboard
 ---@field pairingTarget? string
+
+---@class KinwardChatIO
+---@field sessionId? string Current login token supplied by automatic startup.
+
+---@class KinwardDashboard
+---@field connectionStatus? string
+
+---@class KinwardTraffic
+---@field sent number
+---@field received number
+---@field unmapped number
+---@field lastSend string
+---@field lastReceive string
+
+---@class KinwardTransport
+---@field traffic? KinwardTraffic

@@ -18,7 +18,7 @@ manifest = load('guardian_manifest', 'scripts/manifest.py')
 with tempfile.TemporaryDirectory() as directory:
     root = Path(directory)
     toc = (ROOT / 'Kinward.toc').read_bytes()
-    for name in ('KinwardIcon.tga', 'Kinward.toc', 'Core.lua', 'Minimap.lua', 'Settings.lua', 'Policy.lua', 'Profile.lua', 'Session.lua', 'Requests.lua', 'History.lua', 'HistoryCapture.lua', 'Protocol.lua', 'Family.lua', 'Pairing.lua', 'Transport.lua', 'WoWTransport.lua', 'Activity.lua', 'PairingPanel.lua', 'PlayerMenu.lua', 'Dashboard.lua', 'Chat.lua', 'WoWChat.lua', 'LiveTest.lua'):
+    for name in ('KinwardIcon.tga', 'Kinward.toc', 'Core.lua', 'Minimap.lua', 'Settings.lua', 'Policy.lua', 'Profile.lua', 'Session.lua', 'Requests.lua', 'History.lua', 'HistoryCapture.lua', 'Protocol.lua', 'Family.lua', 'Pairing.lua', 'Transport.lua', 'WoWTransport.lua', 'Activity.lua', 'PairingPanel.lua', 'PlayerMenu.lua', 'Dashboard.lua', 'Chat.lua', 'WoWChat.lua', 'Runtime.lua'):
         (root / name).write_bytes((ROOT / name).read_bytes())
     tool.TOC, tool.STAGED = root / 'Kinward.toc', root / 'Phase1Probe.lua'
     manifest.ROOT = manifest.ADDON = root

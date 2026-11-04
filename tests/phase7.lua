@@ -989,7 +989,7 @@ local function withClientMocks(body)
             return "child-testrealm"
         end,
     }
-    local adapter = assert(ns.NewWoWChat(p, io, true))
+    local adapter = assert(ns.NewWoWChat(p, io))
     p.history = ns.NewHistory(p.generation)
     local ctx = {
         profile = p,

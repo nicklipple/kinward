@@ -146,3 +146,14 @@ activation command exists; normal addon loading remains inert. Startup uses
 `testing=true`, separately from `verified=false`, and does not close any gate.
 No real-client delivery, monitoring, enforcement or taint result has been
 reported for these changes yet. See docs/PAIRING.md for the precise procedure.
+
+## Automatic startup supersedes manual test activation
+
+At the user's explicit request, Runtime.lua now starts transport and supported
+chat monitoring on normal login/reload. Verification/test booleans and the
+manual test command were removed. The pairing screen displays connection and
+delivery state; the Connection diagnostics count sent/received/unmapped packets.
+The user reports that alpha2 did not deliver a request to the guardian. The
+specific actual-client delivery failure is not yet diagnosed; do not mark any
+delivery gate passed from the mocked network tests. The automatic runtime build
+requires a real two-account retest.

@@ -1,18 +1,11 @@
 local _, ns = ...
 ---@cast ns KinwardNamespace
 
--- Source-backed candidate route, deliberately gated until P1-ID/P1-ROUTE pass.
--- The caller must supply a verified local account identity and a fresh instance
--- identifier; this module never invents authority from a payload or character name.
+-- Routing always resolves current engine Battle.net friendships and game handles.
 ---@param family KinwardFamily
----@param instance string
----@param verified boolean Recorded client routing/identity acceptance, not a user preference.
----@param testing? boolean Explicit consenting-account test; does not verify the route.
+---@param instance string Unique identifier for this transport instance.
 ---@return KinwardTransport?, string
-function ns.NewWoWTransport(family, instance, verified, testing)
-    if not verified and not testing then
-        return nil, "live-routing-unverified"
-    end
+function ns.NewWoWTransport(family, instance)
     local prefix = "Kinward4"
     local registered = C_ChatInfo.RegisterAddonMessagePrefix(prefix)
     if registered ~= 0 and registered ~= 1 then
@@ -141,6 +134,9 @@ function ns.NewWoWTransport(family, instance, verified, testing)
         end
         return friends, routes, senders, names
     end
+    ---@type KinwardTraffic
+    local traffic =
+        { sent = 0, received = 0, unmapped = 0, lastSend = "none", lastReceive = "none" }
     local t = ns.NewTransport(family, {
         instance = instance,
         now = GetServerTime,
@@ -165,7 +161,13 @@ function ns.NewWoWTransport(family, instance, verified, testing)
                 return "lockdown"
             end
             local result = C_BattleNet.SendGameData(route, prefix, packet)
+            if not canaccessvalue(result) or type(result) ~= "number" then
+                traffic.lastSend = "unavailable-result"
+                return "send-error"
+            end
+            traffic.lastSend = tostring(result)
             if result == 0 then
+                traffic.sent = traffic.sent + 1
                 return "sent"
             end
             if result == 3 or result == 8 then
@@ -180,8 +182,8 @@ function ns.NewWoWTransport(family, instance, verified, testing)
             return "send-error"
         end,
     })
-    t.testing = testing == true
-    t.testReceived = 0
+    t.traffic = traffic
+    t.received = 0
     t.pairingPolling = true
     local frame = CreateFrame("Frame")
     frame:RegisterEvent("BN_CHAT_MSG_ADDON")
@@ -196,15 +198,17 @@ function ns.NewWoWTransport(family, instance, verified, testing)
         if receivedPrefix ~= prefix then
             return
         end
-        -- BN_CHAT_MSG_ADDON senderID semantics are an open client gate. Never
-        -- fall back to payload identity, account names or character strings.
+        traffic.received = traffic.received + 1
+        -- Authenticate against fresh engine friendship/game-handle records,
+        -- never payload identities or familiar character strings.
         local _, _, senders = discover()
         local peer = senders[senderID]
         if peer then
-            t.testReceived = (t.testReceived or 0) + 1
+            t.received = (t.received or 0) + 1
             local previous = family.guardianInbox and family.guardianInbox[peer]
             local previousToken = previous and previous.token
-            ns.TransportReceive(t, peer, packet)
+            local accepted = ns.TransportReceive(t, peer, packet)
+            traffic.lastReceive = accepted and "accepted" or "ignored"
             local request = family.guardianInbox and family.guardianInbox[peer]
             if
                 request
@@ -224,6 +228,9 @@ function ns.NewWoWTransport(family, instance, verified, testing)
                     ns.ShowDashboard(ns.dashboard, "family")
                 end
             end
+        else
+            traffic.unmapped = traffic.unmapped + 1
+            traffic.lastReceive = "unknown-engine-sender"
         end
     end)
     local nextSync = 0
@@ -257,5 +264,5 @@ function ns.NewWoWTransport(family, instance, verified, testing)
         frame:SetScript("OnEvent", nil)
         frame:SetScript("OnUpdate", nil)
     end
-    return t, "candidate-route-active"
+    return t, "connected"
 end

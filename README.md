@@ -1,15 +1,20 @@
 # Kinward
 
-The planned parental-control behavior is specified in
-[REQUIREMENTS.md](REQUIREMENTS.md). The policy and simulated family-pairing foundation is implemented; live pairing
-and chat enforcement are pending. The [Phase 4 transport/dashboard walkthrough](docs/PHASE4_TRANSPORT.md) documents
-`/kinward ui` (visual role, child, permission and family controls) and the
-isolated `/kinward demo` network demo (requires the staged development harness). Live transport activation remains
-gated by unverified Phase 1 identity/routing.
-See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for phased tasks and
-acceptance criteria. Phase 1 source evidence, support limits and developer-only
-probe instructions are in [docs/CAPABILITIES.md](docs/CAPABILITIES.md). Live-client
-and two-account acceptance is still pending.
+Kinward connects automatically after login and reload. Choose Guardian or Child
+in `/kinward ui`, then use **Family & pairing** to connect the accounts. Children
+can right-click a parent in chat, a player portrait, party/raid, or the Battle.net
+friends list and choose **Kinward: Pair with player**. Review the selected account,
+request guardianship, and accept on the parent. Both accounts must be Battle.net
+friends, online in the same WoW version, and have Kinward installed.
+
+Pairing, permission updates, access requests and Activity history use the live
+connection. Chat monitoring/filtering currently covers ordinary character
+whispers and party chat; other chat surfaces are not established coverage.
+No special activation command is required. `/kinward status` and the Connection
+tab show connection and packet-delivery details. Real-client behavior still
+requires verification; automated tests do not establish complete enforcement.
+The [requirements](REQUIREMENTS.md) and [architecture](ARCHITECTURE.md) document
+implemented contracts, source pins and remaining coverage.
 
 WoW: Forever addon with versioned profiles, a pure policy engine and an isolated
 [command-driven simulator](docs/PHASE2_SIMULATOR.md). `/kinward` prints the
@@ -93,8 +98,8 @@ combat or protected actions. No in-game verification is claimed.
 
 
 Phase 5 adds candidate ordinary whisper/party chat boundaries and isolated
-network-to-chat scenarios. Live enforcement remains inactive pending the Phase 1
-and Phase 4 client gates. See [Phase 5 scope and checklists](docs/PHASE5_CHAT.md)
+network-to-chat scenarios. The live adapters now start automatically; the original phase gate records
+remain historical verification checklists. See [Phase 5 scope and checklists](docs/PHASE5_CHAT.md)
 for simulator commands, source evidence and uncovered routes.
 
 
@@ -102,8 +107,7 @@ Phase 6 adds a **Requests** tab for child requests and guardian approvals:
 indefinite, until logout, 15 minutes or 45 minutes. **Connection** retains delivery
 diagnostics; chat histories remain Phase 7. [Request contracts and the isolated
 demo](docs/PHASE6_REQUESTS.md) cover offline requests, sender-only whisper prompts,
-expiry and cancellation. Live transport/enforcement and client privacy acceptance
-remain gated; the staged demo shares production logic with fixture data only.
+expiry and cancellation. Real-client privacy and coverage still need verification; the staged demo shares production logic with fixture data only.
 
 
 Phase 7 implements the guardian **Activity** browser for captured child chat,
@@ -111,8 +115,8 @@ with per-child/channel/time/conversation/outcome filters and bounded reconnect
 catchup. **Connection** stays separate for diagnostics. Development retention
 defaults are seven days/10,000 rows; blocked bodies stay out of child/debug views.
 [History scope, privacy and demo](docs/PHASE7_HISTORY.md) document the candidate
-capture surfaces and limitations. Live activation, real-client coverage/privacy
-and two-account delivery are still unverified; demo history is synthetic only.
+capture surfaces and limitations. Real-client coverage/privacy
+and two-account delivery remain under testing; demo history is synthetic only.
 
 
 Pairing is now **child requests by guardian name → guardian clicks Accept child**.
@@ -160,11 +164,14 @@ Download the attached `Kinward-*.zip` to install the addon. GitHub's automatic
 **Source code** archives contain the repository and are intended for development.
 CurseForge packaging continues separately through its repository webhook.
 
-## Consenting two-account tests
+## Normal setup and two-account testing
 
-Live adapters are inactive by default. For the explicit Retail test procedure,
-including right-click player selection, run `/kinward test start` on both
-accounts after choosing Child/Guardian roles. See [pairing test instructions](docs/PAIRING.md#right-click-selection-and-explicit-retail-live-tests).
-Use `/kinward test status` for status and `/kinward test stop` followed by reload
-to stop. This test mode covers candidate ordinary whispers/party only and does
-not establish production enforcement or complete chat coverage.
+Install the same current build on both accounts, then log in or `/reload`.
+Choose Child/Guardian roles in `/kinward ui`. The connection and supported chat
+monitoring start automatically, including after reconnect and reload. No
+`/kinward test start` command is needed or supported.
+
+See [pairing instructions](docs/PAIRING.md#right-click-selection-and-automatic-connection).
+If a request stalls, the child form shows whether it was queued, sent, received,
+or blocked by a delivery problem. `/kinward status` on each account reports
+packet counts and send/receive results without including message bodies.

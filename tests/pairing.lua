@@ -649,7 +649,7 @@ test(
         for k, v in pairs(mocks) do
             rawset(env, k, v)
         end
-        local t = assert(ns.NewWoWTransport(n.transports.parent.family, "lookup", true))
+        local t = assert(ns.NewWoWTransport(n.transports.parent.family, "lookup"))
         assert(not t.io.findPeer("Parent"))
         assert(t.io.findPeer("Parent-Test Realm") == "Parent#123")
         assert(t.io.findPeer("parent#123") == "Parent#123")

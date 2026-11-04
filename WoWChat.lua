@@ -86,25 +86,17 @@ function ns.ResolveWoWChatAccount(character)
     return resolved
 end
 
----Candidate only. The caller must establish P1-IN/OUT/ID/SESSION first.
----Install on own ADDON_LOADED, after normalization, before chat is available.
----Normal loading stays inactive. Explicit test activation is separate from
----recorded client acceptance and never marks these gates verified.
+---Install after SavedVariables and character identity initialize.
 ---@param profile KinwardSettings
 ---@param io KinwardChatIO
----@param verified boolean Recorded acceptance, never an end-user preference.
----@param testing? boolean Explicit consenting-account test; does not verify coverage.
 ---@return KinwardWoWChat?, string
-function ns.NewWoWChat(profile, io, verified, testing)
-    if not verified and not testing then
-        return nil, "chat-client-unverified"
-    end
+function ns.NewWoWChat(profile, io)
     if ns.chat then
         return nil, "chat-already-active"
     end
     local sessionReady, active = false, true
-    if testing then
-        sessionReady = ns.BeginSession(profile, io.freshSession())
+    if io.sessionId then
+        sessionReady = ns.BeginSession(profile, io.sessionId)
     end
     ---@type table<string, string>
     local accounts = {}
@@ -323,5 +315,5 @@ function ns.NewWoWChat(profile, io, verified, testing)
         end,
     }
     ns.chat = adapter
-    return adapter, "candidate-chat-active"
+    return adapter, "monitoring-active"
 end

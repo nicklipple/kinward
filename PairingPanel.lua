@@ -135,13 +135,40 @@ function ns.NewPairingPanel(d, family, widgets, confirm)
         }
         local statusText
         if not t then
-            statusText =
-                "Live pairing is inactive. For a consenting two-account test, run /kinward test start on both accounts."
+            statusText = d.connectionStatus
+                or "Connecting to Battle.net. Pairing reconnects automatically."
         elseif waiting and proposal then
             statusText = "Guardian: "
                 .. proposal.peer
                 .. "\n"
                 .. (descriptions[proposal.state] or proposal.state)
+            for _, item in ipairs(t and t.work or {}) do
+                if
+                    not item.reply
+                    and item.kind == "guardian-request"
+                    and item.peer == proposal.peer
+                then
+                    local fields = ns.DecodeMessage(item.wire)
+                    if fields and fields[6] == proposal.token then
+                        local delivery = {
+                            queued = "Request queued for delivery.",
+                            unreachable = "Guardian unreachable. Both accounts must be online in the same WoW version.",
+                            sent = "Request sent; waiting for the guardian addon's delivery receipt.",
+                            throttled = "WoW is throttling addon messages; retrying automatically.",
+                            lockdown = "WoW is restricting addon messages; retrying automatically.",
+                            ["send-error"] = "WoW could not send the request. Connection has delivery details.",
+                        }
+                        statusText = statusText
+                            .. "\n"
+                            .. (
+                                item.state == "delivered"
+                                    and "Guardian addon received the request; waiting for acceptance."
+                                or delivery[item.result]
+                                or item.state
+                            )
+                    end
+                end
+            end
         elseif previewPeer and p.guardians[previewPeer] then
             statusText =
                 "This account already supervises you. Enter another guardian's name to request an addition."

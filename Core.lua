@@ -10,7 +10,7 @@ function ns.OpenDashboard(section, target)
         return
     end
     ns.dashboard = ns.dashboard
-        or ns.NewDashboard(ns.settings, nil, GetServerTime, ns.chat and ns.chat.chat)
+        or ns.NewDashboard(ns.settings, ns.transport, GetServerTime, ns.chat and ns.chat.chat)
     if target then
         ns.dashboard.pairingTarget = target
         ns.dashboard.message = ns.settings
@@ -28,11 +28,11 @@ end
 
 SLASH_KINWARD1 = "/kinward"
 SlashCmdList.KINWARD = function(message)
-    if ns.initialized and message and (message == "test" or message:match("^test%s+")) then
-        print(ns.LiveTestCommand(message:match("^test%s*(.*)$") or ""))
-        return
-    end
     if ns.initialized and message and message ~= "" then
+        if message == "status" then
+            print(ns.RuntimeStatus())
+            return
+        end
         if message == "demo" then
             if ns.ShowNetworkDemo then
                 ns.ShowNetworkDemo()
@@ -45,7 +45,12 @@ SlashCmdList.KINWARD = function(message)
             ns.OpenDashboard()
         else
             ns.dashboard = ns.dashboard
-                or ns.NewDashboard(ns.settings, nil, GetServerTime, ns.chat and ns.chat.chat)
+                or ns.NewDashboard(
+                    ns.settings,
+                    ns.transport,
+                    GetServerTime,
+                    ns.chat and ns.chat.chat
+                )
             print(ns.DashboardCommand(ns.dashboard, message))
         end
         return
@@ -56,14 +61,40 @@ end
 
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("ADDON_LOADED")
-frame:SetScript("OnEvent", function(self, event, loadedAddon)
+local retryElapsed = 0
+local function connect()
+    if ns.StartRuntime() then
+        frame:SetScript("OnUpdate", nil)
+    else
+        frame:SetScript("OnUpdate", function(_, delta)
+            retryElapsed = retryElapsed + delta
+            if retryElapsed >= 2 then
+                retryElapsed = 0
+                connect()
+            end
+        end)
+    end
+end
+frame:SetScript("OnEvent", function(self, event, initial, reload)
+    if event == "PLAYER_ENTERING_WORLD" and ns.initialized then
+        ns.runtimeWorldReady = true
+        if canaccessvalue(initial) and canaccessvalue(reload) then
+            ns.runtimeReload = reload == true and initial == false
+        end
+        connect()
+        return
+    end
+    if event == "BN_CONNECTED" and ns.initialized then
+        connect()
+        return
+    end
     if event == "PLAYER_LOGIN" and ns.initialized then
         ns.InstallMinimapButton()
         ns.InstallPlayerMenu()
         self:UnregisterEvent("PLAYER_LOGIN")
         return
     end
-    if event ~= "ADDON_LOADED" or loadedAddon ~= addonName then
+    if event ~= "ADDON_LOADED" or initial ~= addonName then
         return
     end
     KinwardDB = ns.NormalizeSettings(KinwardDB)
@@ -71,8 +102,9 @@ frame:SetScript("OnEvent", function(self, event, loadedAddon)
     ns.settings = KinwardDB
     ns.initialized = true
     ns.InstallPlayerMenu()
-    if not ns.InstallMinimapButton() then
-        self:RegisterEvent("PLAYER_LOGIN")
-    end
+    ns.InstallMinimapButton()
+    self:RegisterEvent("PLAYER_LOGIN")
+    self:RegisterEvent("PLAYER_ENTERING_WORLD")
+    self:RegisterEvent("BN_CONNECTED")
     self:UnregisterEvent("ADDON_LOADED")
 end)

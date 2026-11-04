@@ -373,3 +373,23 @@ remains inert for transport/chat; the menu only prefills a selection. Adapter
 constructors accept a separate optional `testing` argument for consenting-account
 experiments, without marking `verified` acceptance. API evidence, test scope,
 startup/teardown and known boundaries are documented in docs/PAIRING.md.
+
+
+## Automatic live startup
+
+Runtime.lua replaces LiveTest.lua. Core starts it after PLAYER_ENTERING_WORLD,
+retries incomplete identity/connection every two seconds and on BN_CONNECTED,
+and attaches existing dashboards without opening a window at login. Chat
+monitoring starts independently of Battle.net transport availability so saved
+child policy is not disabled by delayed friendship data. Adapter factories no
+longer take verification/test switches; normal startup invokes them directly.
+The user explicitly requested removal of the earlier manual activation gates.
+Older sections describe historical phases; they do not govern current startup.
+
+Reload preserves session grants; fresh login expires them. Runtime tests execute
+the actual TOC/Core on independent mocked clients and test automatic startup,
+request/accept, policy application, delayed identity, automatic retry and
+reload/session behavior. These establish wiring, not actual game-client results.
+BN_CONNECTED and PLAYER_ENTERING_WORLD source evidence appears in pinned
+Blizzard_FriendsFrame/Mainline/FriendsFrame.lua; the frame OnUpdate API is already
+used/evidenced by the dashboard and adapters. See docs/PAIRING.md for diagnostics.
