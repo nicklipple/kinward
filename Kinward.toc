@@ -16,9 +16,11 @@ Transport.lua
 WoWTransport.lua
 Activity.lua
 PairingPanel.lua
+PlayerMenu.lua
 Dashboard.lua
 Chat.lua
 WoWChat.lua
+LiveTest.lua
 Settings.lua
 Minimap.lua
 Core.lua

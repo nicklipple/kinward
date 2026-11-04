@@ -362,3 +362,14 @@ New API evidence against the pinned Forever source, relative to
 Tests cover drag/click separation, cursor scaling, saved position restoration,
 invalid settings and drag cleanup. Actual texture loading and mouse behavior
 (including combat and minimap replacements) require in-game verification.
+
+
+## Player context menus and explicit live-test boundary
+
+`PlayerMenu.lua` loads before Dashboard and registers player menu extensions only
+after the addon's settings initialize. `LiveTest.lua` loads after WoWChat and
+declares the explicit `test start|status|stop` command handler. Ordinary loading
+remains inert for transport/chat; the menu only prefills a selection. Adapter
+constructors accept a separate optional `testing` argument for consenting-account
+experiments, without marking `verified` acceptance. API evidence, test scope,
+startup/teardown and known boundaries are documented in docs/PAIRING.md.

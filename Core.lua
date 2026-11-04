@@ -5,17 +5,33 @@ local addonName, ns = ...
 ns.initialized = false
 
 ---The slash command and launcher always open the same local dashboard.
-function ns.OpenDashboard()
+function ns.OpenDashboard(section, target)
     if not ns.initialized then
         return
     end
     ns.dashboard = ns.dashboard
         or ns.NewDashboard(ns.settings, nil, GetServerTime, ns.chat and ns.chat.chat)
-    ns.ShowDashboard(ns.dashboard)
+    if target then
+        ns.dashboard.pairingTarget = target
+        ns.dashboard.message = ns.settings
+                and ns.settings.role == "child"
+                and "Review the selected guardian, then send a request."
+            or (
+                ns.settings
+                    and ns.settings.role == "guardian"
+                    and "To supervise this player, ask them to select you and request guardianship from their Child role."
+                or "Choose Child role to request the selected guardian, or Guardian role to supervise someone else."
+            )
+    end
+    ns.ShowDashboard(ns.dashboard, section)
 end
 
 SLASH_KINWARD1 = "/kinward"
 SlashCmdList.KINWARD = function(message)
+    if ns.initialized and message and (message == "test" or message:match("^test%s+")) then
+        print(ns.LiveTestCommand(message:match("^test%s*(.*)$") or ""))
+        return
+    end
     if ns.initialized and message and message ~= "" then
         if message == "demo" then
             if ns.ShowNetworkDemo then
@@ -43,6 +59,7 @@ frame:RegisterEvent("ADDON_LOADED")
 frame:SetScript("OnEvent", function(self, event, loadedAddon)
     if event == "PLAYER_LOGIN" and ns.initialized then
         ns.InstallMinimapButton()
+        ns.InstallPlayerMenu()
         self:UnregisterEvent("PLAYER_LOGIN")
         return
     end
@@ -53,6 +70,7 @@ frame:SetScript("OnEvent", function(self, event, loadedAddon)
     ns.PruneProfileHistory(KinwardDB, GetServerTime())
     ns.settings = KinwardDB
     ns.initialized = true
+    ns.InstallPlayerMenu()
     if not ns.InstallMinimapButton() then
         self:RegisterEvent("PLAYER_LOGIN")
     end

@@ -136,3 +136,13 @@ covered by shared protocol/widget/adapter mocks. No actual client or two-account
 pairing test was performed. Closed defaults and current-peer authorization remain
 mandatory. The candidate transport is still inactive in Core; existing live
 identity/routing/bootstrap gates remain open. See PAIRING.md for the new demo.
+
+## Explicit Retail two-account test preparation
+
+The user is now testing two Retail accounts. Right-click pairing selection and
+`/kinward test start|status|stop` provide explicit, nonpersistent activation of
+the candidate adapters. This supersedes earlier statements that no test
+activation command exists; normal addon loading remains inert. Startup uses
+`testing=true`, separately from `verified=false`, and does not close any gate.
+No real-client delivery, monitoring, enforcement or taint result has been
+reported for these changes yet. See docs/PAIRING.md for the precise procedure.

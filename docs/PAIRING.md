@@ -117,3 +117,74 @@ Real-client tests remain necessary for actual names/friendship data, request
 arrival while Family is hidden, popup behavior, receiver identity, reconnect,
 restricted states and taint. Record Forever and Retail separately. Simulated or
 mocked success does not close the live gates.
+
+## Right-click selection and explicit Retail live tests
+
+Right-click a player portrait, party/raid member, chat player or friend and choose
+**Kinward: Pair with player**. This opens Family. In the Child role, the selected
+name and realm (or BattleTag from a Battle.net friend menu) fill the guardian
+field. Review the resolved account and click Request guardianship. Selecting a
+menu item never sends a request or grants access. Guardians instruct the selected
+child to request them; the existing child-request/guardian-accept handshake stays
+unchanged. Character selections retain their explicit realm. Ambiguous short
+names still require a full name/BattleTag. A verified BattleTag remains usable
+when unrelated character aliases are inaccessible.
+
+The default alpha remains inert. For a test between two consenting Retail
+accounts, with Kinward installed on both and the accounts Battle.net friends:
+
+1. Enable Lua errors with `/console scriptErrors 1` on both clients. Open
+   `/kinward ui`, select Child role on one and Guardian role on the other.
+2. Run `/kinward test start` on **both** clients after entering the world. This
+   explicitly starts candidate Battle.net transport and ordinary whisper/party
+   capture/filter/send adapters. It does not record any acceptance gate as passed.
+   Test activation is not saved; repeat after each reload/login.
+3. On the child, right-click the parent's player name/portrait or Battle.net
+   friend entry, choose Kinward's pairing entry, review the account, and request.
+   On the parent, accept the child in Family. Confirm both dashboards report the
+   applied relationship before evaluating permissions.
+4. Use `/kinward test status` on each side to inspect activation/account and
+   engine-mapped incoming packet counts. Zero counts while requesting indicate
+   routing/mapping still needs real-client investigation. If names cannot resolve,
+   try the Battle.net friend context menu/full BattleTag and confirm friendship,
+   matching WoW project and online presence.
+5. In a party, test incoming and outgoing party permission separately. Test an
+   ordinary character whisper using a third consenting sender or the child's
+   own outgoing target. A guardian's verified account always bypasses whisper
+   restrictions, so guardian-to-child whispers are not a valid blocked-whisper
+   test. Confirm actual remote visibility as well as the local Activity view.
+6. Check Activity on the guardian and refresh history. Test expiry/reload,
+   friendship loss, changed characters and error/taint logs. General/Trade/LFG,
+   Battle.net whispers, voice, bubbles, cached sends and secret states are **not**
+   established coverage. Do not treat those controls as proof of enforcement.
+7. `/kinward test stop` removes owned filters/transport callbacks and then requires
+   `/reload` to clear wrapper taint. Saved supervision/permissions remain intact.
+   While inactive, this build does not enforce that saved policy.
+
+The test token generator combines engine player GUID, server/precise time and a
+persisted local counter. It is deliberately labeled a test generator, not a
+verified production entropy/identity/session implementation. Starting a test
+creates a fresh test session, so old session grants expire. Real incoming sender
+ID semantics, payload restrictions, taint and lifecycle correctness still need
+your actual two-account results. This is a test facility, not a verified release
+activation path.
+
+Pinned Forever API evidence (Gethe 17ed2c3e8471cdc3806ab0d26a082be7c67d3d7c,
+under `reference/blizzard-ui/Interface/AddOns/`):
+
+- `Blizzard_Menu/Menu.lua`: `Menu.ModifyMenu` and context-data callbacks.
+- `Blizzard_UnitPopupShared/UnitPopupShared.lua`: `MENU_UNIT_` tags and player
+  context `name`, `surname`, `unit`, `accountInfo`.
+- `Blizzard_UnitPopupShared/UnitPopupSharedMenus.lua`: PLAYER/PARTY/RAID_PLAYER,
+  FRIEND/FRIEND_OFFLINE, BN_FRIEND/BN_FRIEND_OFFLINE, CHAT_ROSTER registrations.
+- `Blizzard_UnitPopupShared/UnitPopupSharedButtonMixins.lua`: `UnitIsPlayer`,
+  `UnitIsUnit`, `UnitFullName` and Battle.net context account info.
+- `Blizzard_APIDocumentationGenerated/UnitDocumentation.lua`: `UnitFullName`,
+  `UnitGUID`; `PlayerScriptDocumentation.lua`: `GetNormalizedRealmName`.
+- `Blizzard_AddFriend/AddFriendTemplates.lua`: `BNGetInfo` BattleTag return.
+- `Blizzard_Console/Blizzard_Console.lua`: `GetTimePreciseSec`.
+
+Source evidence permits implementing the test boundary; it is not proof that
+Forever or Retail runtime acceptance passed. Automated tests cover real candidate
+adapters on two independent mocked clients, menu identity/selection, cross-realm
+pairing, applied permission updates, startup idempotence and teardown.

@@ -38,6 +38,7 @@ for _, f in ipairs({
     "WoWTransport.lua",
     "Activity.lua",
     "PairingPanel.lua",
+    "PlayerMenu.lua",
     "Dashboard.lua",
     "Chat.lua",
     "WoWChat.lua",
@@ -678,6 +679,7 @@ test(
         ns.settings, ns.dashboard, ns.ShowDashboard = savedSettings, savedDashboard, savedShow
         friends[1].name = secret
         assert(not t.io.findPeer("Newalt-TestRealm"))
+        assert(t.io.findPeer("Parent#123") == "Parent#123")
         count = 201
         assert(not t.io.findPeer("Parent"))
         t.stop()
@@ -738,4 +740,25 @@ test("the child sees the resolved account before the request button is clicked",
         assert(n.transports.child.family.proposal.peer == "parent")
     end)
 end)
+test(
+    "selected cross-realm guardian prefills the child form without sending before consent",
+    function()
+        local n = fresh()
+        withWidgets(function(ui)
+            local d = n.dashboards.child
+            d.pairingTarget = "Parent-TestRealm"
+            ns.ShowDashboard(d, "family")
+            assert(d.pairingTarget == nil and not d.transport.family.proposal)
+            local found = false
+            for _, w in ipairs(ui.frames) do
+                if w.kind == "EditBox" and w.value == "Parent-TestRealm" and ui.visible(w) then
+                    found = true
+                end
+            end
+            assert(found)
+            ui.click("Request guardianship")
+            assert(d.transport.family.proposal.peer == "parent")
+        end)
+    end
+)
 print(string.format("%d streamlined pairing tests passed (Lua %s)", passed, _VERSION))

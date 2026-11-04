@@ -102,6 +102,12 @@ function ns.NewPairingPanel(d, family, widgets, confirm)
             childForm:Hide()
             inbox:Show()
         end
+        if d.pairingTarget and p.role == "child" then
+            local target = d.pairingTarget or ""
+            d.pairingTarget = nil
+            name:SetText(target)
+            previewName = nil
+        end
         local proposal = t and t.family.proposal
         local waiting = proposal
             and (proposal.state == "pending" or proposal.state == "awaiting-approval")
@@ -128,7 +134,10 @@ function ns.NewPairingPanel(d, family, widgets, confirm)
             cancelled = "The request was cancelled.",
         }
         local statusText
-        if waiting and proposal then
+        if not t then
+            statusText =
+                "Live pairing is inactive. For a consenting two-account test, run /kinward test start on both accounts."
+        elseif waiting and proposal then
             statusText = "Guardian: "
                 .. proposal.peer
                 .. "\n"

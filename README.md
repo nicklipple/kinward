@@ -159,3 +159,12 @@ already exists fails rather than replacing published files.
 Download the attached `Kinward-*.zip` to install the addon. GitHub's automatic
 **Source code** archives contain the repository and are intended for development.
 CurseForge packaging continues separately through its repository webhook.
+
+## Consenting two-account tests
+
+Live adapters are inactive by default. For the explicit Retail test procedure,
+including right-click player selection, run `/kinward test start` on both
+accounts after choosing Child/Guardian roles. See [pairing test instructions](docs/PAIRING.md#right-click-selection-and-explicit-retail-live-tests).
+Use `/kinward test status` for status and `/kinward test stop` followed by reload
+to stop. This test mode covers candidate ordinary whispers/party only and does
+not establish production enforcement or complete chat coverage.

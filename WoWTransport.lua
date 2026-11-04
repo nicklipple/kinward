@@ -7,9 +7,10 @@ local _, ns = ...
 ---@param family KinwardFamily
 ---@param instance string
 ---@param verified boolean Recorded client routing/identity acceptance, not a user preference.
+---@param testing? boolean Explicit consenting-account test; does not verify the route.
 ---@return KinwardTransport?, string
-function ns.NewWoWTransport(family, instance, verified)
-    if not verified then
+function ns.NewWoWTransport(family, instance, verified, testing)
+    if not verified and not testing then
         return nil, "live-routing-unverified"
     end
     local prefix = "Kinward4"
@@ -129,7 +130,14 @@ function ns.NewWoWTransport(family, instance, verified)
             end
         end
         if incomplete then
+            -- An inaccessible character can make name aliases ambiguous, but
+            -- a complete engine-provided BattleTag still identifies its friend.
             names = {}
+            for peer in pairs(friends) do
+                if not ambiguous[peer] then
+                    alias(peer, peer)
+                end
+            end
         end
         return friends, routes, senders, names
     end
@@ -172,6 +180,8 @@ function ns.NewWoWTransport(family, instance, verified)
             return "send-error"
         end,
     })
+    t.testing = testing == true
+    t.testReceived = 0
     t.pairingPolling = true
     local frame = CreateFrame("Frame")
     frame:RegisterEvent("BN_CHAT_MSG_ADDON")
@@ -191,6 +201,7 @@ function ns.NewWoWTransport(family, instance, verified)
         local _, _, senders = discover()
         local peer = senders[senderID]
         if peer then
+            t.testReceived = (t.testReceived or 0) + 1
             local previous = family.guardianInbox and family.guardianInbox[peer]
             local previousToken = previous and previous.token
             ns.TransportReceive(t, peer, packet)

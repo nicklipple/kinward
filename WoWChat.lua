@@ -88,19 +88,24 @@ end
 
 ---Candidate only. The caller must establish P1-IN/OUT/ID/SESSION first.
 ---Install on own ADDON_LOADED, after normalization, before chat is available.
----No slash/saved-variable bypass of this gate; Core has no verified bootstrap yet.
+---Normal loading stays inactive. Explicit test activation is separate from
+---recorded client acceptance and never marks these gates verified.
 ---@param profile KinwardSettings
 ---@param io KinwardChatIO
 ---@param verified boolean Recorded acceptance, never an end-user preference.
+---@param testing? boolean Explicit consenting-account test; does not verify coverage.
 ---@return KinwardWoWChat?, string
-function ns.NewWoWChat(profile, io, verified)
-    if not verified then
+function ns.NewWoWChat(profile, io, verified, testing)
+    if not verified and not testing then
         return nil, "chat-client-unverified"
     end
     if ns.chat then
         return nil, "chat-already-active"
     end
     local sessionReady, active = false, true
+    if testing then
+        sessionReady = ns.BeginSession(profile, io.freshSession())
+    end
     ---@type table<string, string>
     local accounts = {}
     local chat = ns.NewChat(profile, function()

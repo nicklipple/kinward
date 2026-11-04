@@ -142,7 +142,9 @@ function ns.DashboardText(d)
     local lines = {
         "Kinward — " .. p.role .. "; supervision: " .. p.supervision,
         t
-                and "Transport connected to an injected endpoint. Live chat enforcement remains client-gated."
+                and t.testing
+                and "LIVE TEST: candidate Battle.net routing and whisper/party monitoring are unverified."
+            or t and "Transport connected to an injected endpoint. Live chat enforcement remains client-gated."
             or "Live transport gated: identity and routing require two-account verification.",
         "Monitoring loss does not revoke the saved policy. Enforcement itself remains unverified.",
         d.message,
@@ -970,7 +972,12 @@ function ns.ShowDashboard(d, section)
                     and ("Single-session fixtures · saved live profiles untouched · loss " .. (d.demo.sim.loss and "ON" or "off") .. " · simulation time " .. math.floor(
                         d.demo.sim.now
                     ))
-                or "Live account identity and routing await verification. Chat enforcement is pending Phase 5."
+                or (
+                    t
+                        and t.testing
+                        and "LIVE TEST (unverified) · Battle.net pairing + ordinary whispers/party only · /kinward test status"
+                    or "Live pairing is inactive. For a consenting two-account test: /kinward test start on both accounts."
+                )
         )
         roleGuardian:SetEnabled(mutableRole and p.role ~= "guardian")
         roleChild:SetEnabled(mutableRole and p.role ~= "child")
@@ -1342,7 +1349,10 @@ function ns.ShowDashboard(d, section)
             local monitoring = d.chat and d.chat.monitoring and p.supervision == "paired"
             banner:SetText(
                 plain(
-                    (d.demo and "SIMULATION · " or "")
+                    (
+                        d.demo and "SIMULATION · "
+                        or (t and t.testing and "LIVE TEST (unverified) · " or "")
+                    )
                         .. (
                             monitoring
                                 and "Chat monitoring is active on supported routes. Your guardians can review captured chat."

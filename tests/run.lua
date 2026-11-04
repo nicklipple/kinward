@@ -124,6 +124,7 @@ local function client(saved)
         tonumber = tonumber,
         tostring = tostring,
         string = { format = string.format },
+        Menu = { ModifyMenu = function() end },
         KinwardDB = saved,
         Minimap = minimap,
         GameTooltip = tooltip,

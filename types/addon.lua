@@ -215,7 +215,7 @@ SLASH_KINWARDSIM1 = "/kinwardsim"
 ---@field TransportReceive fun(t: KinwardTransport, peer: string, packet: unknown): boolean
 ---@field TransportTick fun(t: KinwardTransport)
 ---@field TransportPresence fun(t: KinwardTransport, peer: string): string, number?
----@field NewWoWTransport fun(family: KinwardFamily, instance: string, verified: boolean): KinwardTransport?, string
+---@field NewWoWTransport fun(family: KinwardFamily, instance: string, verified: boolean, testing?: boolean): KinwardTransport?, string
 ---@field NewDashboard fun(profile: KinwardSettings, transport?: KinwardTransport, now?: KinwardClock, chat?: KinwardChat): KinwardDashboard
 ---@field DashboardCommand fun(d: KinwardDashboard, message: string): string
 ---@field DashboardText fun(d: KinwardDashboard): string
@@ -273,7 +273,7 @@ SLASH_KINWARDSIM1 = "/kinwardsim"
 ---@class KinwardNamespace
 ---@field NewChat fun(profile: KinwardSettings, context: fun(): KinwardContext): KinwardChat
 ---@field ChatDecision fun(chat: KinwardChat, channel: string, direction: 'read'|'send', identity?: KinwardIdentity, line?: number): boolean, string
----@field NewWoWChat fun(profile: KinwardSettings, io: KinwardChatIO, verified: boolean): KinwardWoWChat?, string
+---@field NewWoWChat fun(profile: KinwardSettings, io: KinwardChatIO, verified: boolean, testing?: boolean): KinwardWoWChat?, string
 
 ---@class KinwardNamespace
 ---@field chat? KinwardWoWChat
@@ -499,4 +499,21 @@ SLASH_KINWARDSIM1 = "/kinwardsim"
 ---@class KinwardNamespace
 ---@field minimapButton? Button
 ---@field InstallMinimapButton fun(): Button?
----@field OpenDashboard fun()
+---@field OpenDashboard fun(section?: string, target?: string)
+
+---@class KinwardNamespace
+---@field InstallPlayerMenu fun()
+---@field PlayerMenuTarget fun(context: table): string?
+---@field playerMenuInstalled? boolean
+---@field LiveTestCommand fun(command: string): string
+---@field liveTestTransport? KinwardTransport
+
+---@class KinwardTransport
+---@field testing? boolean
+---@field testReceived? number
+
+---@class KinwardSettings
+---@field liveTestCounter? number
+
+---@class KinwardDashboard
+---@field pairingTarget? string
