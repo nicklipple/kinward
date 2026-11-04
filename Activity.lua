@@ -13,6 +13,10 @@ end
 
 local chatChannels = {
     whisper = { "Whisper", "ffff80ff" },
+    bnet = { "Battle.net", "ff00ffff" },
+    officer = { "Officer", "ff40c040" },
+    emote = { "Emote", "ffff8040" },
+    communities = { "Community", "ff40ffb0" },
     party = { "Party", "ffaaaaff" },
     say = { "Say", "ffffffff" },
     yell = { "Yell", "ffff4040" },
@@ -72,7 +76,7 @@ function ns.NewActivityPanel(d, activity, widgets)
     ---@type KinwardHistoryFilters
     local historyFilters = {}
     local historyPage, historyPeer = 1, nil
-    local historyChannel, historyDirection, historyDisposition, historyWindow = 1, 1, 1, 1
+    local historyChannel, historyDirection, historyDisposition, historyWindow = "", 1, 1, 1
     local historyChannels = {
         { "", "All channels" },
         { "whisper", "Whispers" },
@@ -110,15 +114,36 @@ function ns.NewActivityPanel(d, activity, widgets)
     channelFilter:SetPoint("TOPLEFT", 14, -12)
     channelFilter:SetSize(166, 24)
     channelFilter:SetupMenu(function(_, rootDescription)
-        for index, spec in ipairs(historyChannels) do
-            rootDescription:CreateRadio(spec[2], function()
-                return historyChannel == index
+        local options, seen = {}, {}
+        local function add(key, caption)
+            if not seen[key] then
+                seen[key] = true
+                options[#options + 1] = { key, caption }
+            end
+        end
+        for _, spec in ipairs(historyChannels) do
+            add(spec[1], spec[2])
+        end
+        add("bnet", "Battle.net whispers")
+        for _, spec in ipairs(ns.ChannelCatalog) do
+            add(spec[1], spec[2])
+        end
+        local view = d.profile.role == "guardian"
+            and d.selectedChild
+            and d.profile.childProfiles[d.selectedChild]
+        for _, record in ipairs(view and view.history and view.history.records or {}) do
+            add(record.channel, record.channel:gsub("^channel:custom:", "Custom: "))
+        end
+        for _, spec in ipairs(options) do
+            rootDescription:CreateRadio(plain(spec[2]), function()
+                return historyChannel == spec[1]
             end, function()
-                historyChannel = index
+                historyChannel = spec[1]
                 historyFilters.channel = spec[1] ~= "" and spec[1] or nil
                 historyPage = 1
             end)
         end
+        rootDescription:SetScrollMode(264)
     end)
     local directionFilter, outcomeFilter, timeFilter
     directionFilter = button(activity, 190, 12, 162, "Both directions", function()
@@ -245,7 +270,7 @@ function ns.NewActivityPanel(d, activity, widgets)
                         .. (h and ("Received through " .. (h.cursor or 0) .. " of " .. h.high .. " · lost to count limit " .. h.pruned .. " · expired " .. h.expired .. " · " .. math.floor(
                             h.retention / 86400
                         ) .. " day retention / " .. h.maxRecords .. " rows") or "History has not been fetched yet.")
-                        .. "\nCoverage: ordinary whispers/party only. Other surfaces and secret states may be missing. Local output does not prove receipt."
+                        .. "\nCoverage: accessible player text chat. Secret content and separate UI/voice surfaces may be missing. Local output does not prove receipt."
                 )
             )
             refreshHistory:SetEnabled(canEdit)

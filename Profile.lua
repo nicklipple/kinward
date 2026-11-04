@@ -12,7 +12,8 @@ function ns.ValidGrant(grant)
     if type(grant) ~= "table" then
         return false
     end
-    return grant.mode == "indefinite"
+    return grant.mode == "deny"
+        or grant.mode == "indefinite"
         or (grant.mode == "duration" and type(grant.expiresAt) == "number" and grant.expiresAt == grant.expiresAt and grant.expiresAt > 0 and grant.expiresAt < math.huge)
         or (grant.mode == "session" and identifier(grant.sessionId))
 end

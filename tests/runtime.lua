@@ -34,7 +34,7 @@ local function network(savedSession)
                 return 1, bnetReady and id or nil
             end,
             GetServerTime = function()
-                return time
+                return math.floor(time)
             end,
             GetTimePreciseSec = function()
                 return time + 0.12345
@@ -67,7 +67,27 @@ local function network(savedSession)
                     menus[tag] = callback
                 end,
             },
+            C_Club = {
+                SendMessage = function()
+                    originalSends = originalSends + 1
+                end,
+            },
+            GetChannelName = function(channel)
+                if channel == 1 then
+                    return 1, "General", 0, false
+                end
+                if channel == 5 then
+                    return 5, "FamilyRoom", 0, false
+                end
+                if channel == 6 then
+                    return 6, "General", 0, false
+                end
+                return 0
+            end,
             C_ChatInfo = {
+                GetChannelInfoFromIdentifier = function(name)
+                    return { name = name, zoneChannelID = name == "FamilyRoom" and 0 or 1 }
+                end,
                 RegisterAddonMessagePrefix = function()
                     return 0
                 end,
@@ -92,6 +112,19 @@ local function network(savedSession)
         }
         local peer
         env.C_BattleNet = {
+            SendWhisper = function()
+                originalSends = originalSends + 1
+                return true
+            end,
+            GetAccountInfoByID = function(bnetID)
+                if bnetID == 777 then
+                    return { isFriend = true, battleTag = "Friend#777" }
+                end
+                if bnetID == peer.handle + 1000 then
+                    return { isFriend = true, battleTag = peer.id }
+                end
+                return { isFriend = false, battleTag = "Stranger#999" }
+            end,
             GetFriendAccountInfo = function()
                 return { isFriend = true, battleTag = peer.id }
             end,
@@ -189,8 +222,8 @@ local function network(savedSession)
     local parent = client("Parent#456", "guardian", "Parent", "Other Realm")
     child.connect(parent)
     parent.connect(child)
-    local function advance()
-        for _ = 1, 160 do
+    local function advance(seconds)
+        for _ = 1, math.floor((seconds or 16) * 10) do
             time = time + 0.1
             for _, c in pairs(clients) do
                 for _, f in ipairs(c.frames) do
@@ -384,5 +417,165 @@ test("an actual Battle.net lockdown result defers pairing without claiming deliv
     end
     assert(pending and pending.state == "pending" and pending.result == "lockdown")
 end)
+
+local function pairedNetwork()
+    local child, parent, advance = network()
+    child.enter()
+    parent.enter()
+    child.ns.OpenDashboard("family", "Parent-Other Realm")
+    assert(child.ns.RequestGuardianship(child.ns.transport, "Parent-Other Realm"))
+    advance()
+    local r = parent.ns.transport.family.guardianInbox["Child#123"]
+    assert(r and parent.ns.AnswerGuardianship(parent.ns.transport, "Child#123", r.token, true))
+    advance()
+    assert(child.ns.settings.supervision == "paired")
+    return child, parent, advance
+end
+local line = 100
+local function incoming(c, event, body, zone, base, bn)
+    line = line + 1
+    return c.filters[event](
+        {},
+        event,
+        body,
+        "Stranger-SomeRealm",
+        "",
+        "",
+        "",
+        "",
+        zone or 0,
+        0,
+        base or "",
+        0,
+        line,
+        "",
+        bn
+    )
+end
+
+test("every standard player chat route blocks and captures by default", function()
+    local child = pairedNetwork()
+    for _, spec in ipairs({
+        { "SAY", "CHAT_MSG_SAY", "say" },
+        { "YELL", "CHAT_MSG_YELL", "yell" },
+        { "GUILD", "CHAT_MSG_GUILD", "guild" },
+        { "OFFICER", "CHAT_MSG_OFFICER", "officer" },
+        { "RAID", "CHAT_MSG_RAID", "raid" },
+        { "RAID_WARNING", "CHAT_MSG_RAID_WARNING", "raid" },
+        { "INSTANCE_CHAT", "CHAT_MSG_INSTANCE_CHAT", "instance" },
+        { "EMOTE", "CHAT_MSG_EMOTE", "emote" },
+        { "PARTY", "CHAT_MSG_PARTY", "party" },
+        { "COMMUNITIES_CHANNEL", "CHAT_MSG_COMMUNITIES_CHANNEL", "communities" },
+    }) do
+        child.env.C_ChatInfo.SendChatMessage("OUT-" .. spec[1], spec[1])
+        assert(incoming(child, spec[2], "IN-" .. spec[1]))
+        local records = child.ns.settings.history.records
+        assert(records[#records].channel == spec[3] and records[#records].disposition == "blocked")
+        assert(records[#records - 1].disposition == "blocked-attempt")
+    end
+    assert(child.sends() == 0)
+end)
+
+test(
+    "custom channel defaults, named overrides and stable public keys use the real adapters",
+    function()
+        local child, parent, advance = pairedNetwork()
+        child.env.C_ChatInfo.SendChatMessage("BLOCKED-CUSTOM", "CHANNEL", nil, 5)
+        assert(child.sends() == 0)
+        assert(incoming(child, "CHAT_MSG_CHANNEL", "BLOCKED-GENERAL", 1, "General - City"))
+        assert(child.ns.PublicChannelKey("General", 0) == "channel:custom:general")
+        for _, direction in ipairs({ "read", "send" }) do
+            parent.ns.DashboardAction(
+                parent.ns.dashboard,
+                "policy",
+                { "Child#123", "channel:custom", direction, "indefinite", "", "", "" }
+            )
+        end
+        advance()
+        child.env.C_ChatInfo.SendChatMessage("ALLOWED-CUSTOM", "CHANNEL", nil, 5)
+        assert(
+            child.sends() == 1
+                and not incoming(child, "CHAT_MSG_CHANNEL", "ALLOWED", 0, "FamilyRoom")
+        )
+        parent.ns.DashboardAction(
+            parent.ns.dashboard,
+            "policy",
+            { "Child#123", "channel:custom:familyroom", "read", "revoke", "", "", "" }
+        )
+        advance()
+        assert(incoming(child, "CHAT_MSG_CHANNEL", "DENIED-EXCEPTION", 0, "FamilyRoom"))
+        assert(not incoming(child, "CHAT_MSG_CHANNEL", "OTHER-ROOM", 0, "OtherRoom"))
+        assert(child.ns.settings.policy.channels["channel:custom:familyroom"].read.mode == "deny")
+        assert(child.ns.NormalizeSettings(child.ns.settings).supervision == "paired")
+    end
+)
+
+test(
+    "Battle.net whispers and community sends enforce and capture without confusing account IDs",
+    function()
+        local child, parent, advance = pairedNetwork()
+        assert(child.env.C_BattleNet.SendWhisper(999, "BLOCKED-BNET") == false)
+        assert(incoming(child, "CHAT_MSG_BN_WHISPER", "BLOCKED-BNET-IN", nil, nil, 999))
+        assert(child.env.C_BattleNet.SendWhisper(parent.handle + 1000, "GUARDIAN-BNET"))
+        assert(
+            not incoming(
+                child,
+                "CHAT_MSG_BN_WHISPER",
+                "GUARDIAN-BNET-IN",
+                nil,
+                nil,
+                parent.handle + 1000
+            )
+        )
+        parent.ns.DashboardAction(
+            parent.ns.dashboard,
+            "policy",
+            { "Child#123", "whisper-account", "read", "indefinite", "", "", "Friend#777" }
+        )
+        advance()
+        assert(child.env.C_BattleNet.SendWhisper(777, "ALLOWED-FRIEND"))
+        assert(not incoming(child, "CHAT_MSG_BN_WHISPER", "ALLOWED-FRIEND-IN", nil, nil, 777))
+        local sent = child.sends()
+        child.env.C_Club.SendMessage("123", "456", "BLOCKED-COMMUNITY")
+        assert(child.sends() == sent)
+        assert(
+            child.ns.settings.history.records[#child.ns.settings.history.records].channel
+                == "communities"
+        )
+    end
+)
+
+test(
+    "integer server clocks deliver captured say history while background control polls run",
+    function()
+        local child, parent, advance = pairedNetwork()
+        assert(child.ns.transport.io.now() % 1 == 0)
+        assert(child.ns.transport.io.monotonic() % 1 ~= 0)
+        local polls = 0
+        local request = parent.ns.TransportRequest
+        parent.ns.TransportRequest = function(t, peer, kind, args, seconds)
+            if kind == "pairing-pending" then
+                polls = polls + 1
+            end
+            return request(t, peer, kind, args, seconds)
+        end
+        for i = 1, 18 do
+            child.env.C_ChatInfo.SendChatMessage("SAY-HISTORY-" .. i .. string.rep("x", 200), "SAY")
+        end
+        assert(child.sends() == 0)
+        assert(parent.ns.WatchHistory(parent.ns.transport, "Child#123"))
+        advance(120)
+        local h = parent.ns.settings.childProfiles["Child#123"].history
+        assert(h and h.cursor == child.ns.settings.history.high)
+        local found = 0
+        for _, record in ipairs(h.records) do
+            if record.channel == "say" and record.text:find("SAY-HISTORY-", 1, true) then
+                assert(record.disposition == "blocked-attempt")
+                found = found + 1
+            end
+        end
+        assert(found == 18 and polls <= 6)
+    end
+)
 
 print(string.format("%d automatic runtime boundary tests passed (mocked Lua %s)", passed, _VERSION))

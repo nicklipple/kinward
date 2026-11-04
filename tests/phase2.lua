@@ -26,6 +26,7 @@ setmetatable(env, {
     end,
 })
 for _, file in ipairs({
+    "Channels.lua",
     "Policy.lua",
     "Profile.lua",
     "Session.lua",

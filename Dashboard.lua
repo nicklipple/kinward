@@ -143,7 +143,7 @@ function ns.DashboardText(d)
         "Kinward — " .. p.role .. "; supervision: " .. p.supervision,
         t and "Connected. Saved permissions are applied by the child's addon."
             or (d.connectionStatus or "Connecting to Battle.net."),
-        "Monitoring supports ordinary whispers and party chat.",
+        "Player text chat routes are monitored; inaccessible/secret content creates coverage gaps.",
         d.message,
     }
     local traffic = t and t.traffic
@@ -323,19 +323,7 @@ function ns.DashboardAction(d, kind, args)
     return result
 end
 
-local channels = {
-    { "party", "Party" },
-    { "say", "Say" },
-    { "yell", "Yell" },
-    { "guild", "Guild" },
-    { "raid", "Raid" },
-    { "instance", "Instance" },
-    { "channel:general", "General" },
-    { "channel:lookingforgroup", "Looking For Group" },
-    { "channel:trade", "Trade" },
-    { "channel:services", "Trade (Services)" },
-    { "channel:localdefense", "Local Defense" },
-}
+local channels = ns.ChannelCatalog
 
 ---@param d KinwardDashboard
 ---@param child? string
@@ -381,6 +369,9 @@ function ns.DashboardPermission(d, child, channel, direction, target)
         local setting = view
             and view.settings
             and view.settings[channel .. "/" .. direction .. "/" .. target]
+        if not setting and view and view.settings and ns.ChannelCategory(channel) ~= channel then
+            setting = view.settings[ns.ChannelCategory(channel) .. "/" .. direction .. "/"]
+        end
         -- Whisper grants are bidirectional even when inspected using send.
         if not setting and view and view.settings and channel:find("^whisper%-") then
             setting = view.settings[channel .. "/read/" .. target]
@@ -588,18 +579,10 @@ function ns.ShowDashboard(d, section)
     end)
     label(permissionUI.channels, 150, 0, 190, "READ incoming", "GameFontHighlightSmall")
     label(permissionUI.channels, 410, 0, 260, "SEND outgoing", "GameFontHighlightSmall")
-    label(
-        permissionUI.channels,
-        14,
-        334,
-        680,
-        "Public channel settings are saved permissions; live coverage is unverified.",
-        "GameFontHighlightSmall"
-    )
     permissionUI.scroll =
         CreateFrame("ScrollFrame", nil, permissionUI.channels, "UIPanelScrollFrameTemplate")
     permissionUI.scroll:SetPoint("TOPLEFT", 0, -26)
-    permissionUI.scroll:SetSize(682, 298)
+    permissionUI.scroll:SetSize(682, 286)
     permissionUI.body = CreateFrame("Frame", nil, permissionUI.scroll)
     permissionUI.body:SetSize(674, #channels * 40)
     permissionUI.scroll:SetScrollChild(permissionUI.body)
@@ -633,6 +616,36 @@ function ns.ShowDashboard(d, section)
             rows[#rows + 1] =
                 { channel = channel, direction = direction, state = state, buttons = buttons }
         end
+    end
+    label(permissionUI.channels, 14, 323, 300, "Named custom channel", "GameFontHighlightSmall")
+    permissionUI.customTarget = input(permissionUI.channels, 18, 340, 300)
+    permissionUI.customTarget:SetMaxLetters(48)
+    permissionUI.customState =
+        label(permissionUI.channels, 334, 323, 360, "", "GameFontHighlightSmall")
+    permissionUI.customButtons = {}
+    for i, spec in ipairs({
+        { "Allow read", "read", "indefinite" },
+        { "Block read", "read", "revoke" },
+        { "Allow send", "send", "indefinite" },
+        { "Block send", "send", "revoke" },
+    }) do
+        permissionUI.customButtons[i] = button(
+            permissionUI.channels,
+            334 + (i - 1) * 92,
+            340,
+            88,
+            spec[1],
+            function()
+                local channel = ns.CustomChannelKey(permissionUI.customTarget:GetText())
+                if channel then
+                    ns.DashboardAction(
+                        d,
+                        "policy",
+                        { d.selectedChild or "", channel, spec[2], spec[3], "", "", "" }
+                    )
+                end
+            end
+        )
     end
     label(
         permissionUI.whispers,
@@ -1287,6 +1300,17 @@ function ns.ShowDashboard(d, section)
             else
                 row.control:Hide()
             end
+        end
+        local custom = ns.CustomChannelKey(permissionUI.customTarget:GetText())
+        for _, control in ipairs(permissionUI.customButtons) do
+            control:SetEnabled(canEdit and custom ~= nil)
+        end
+        if custom then
+            local read = ns.DashboardPermission(d, d.selectedChild, custom, "read")
+            local send = ns.DashboardPermission(d, d.selectedChild, custom, "send")
+            permissionUI.customState:SetText("Read: " .. read .. " · Send: " .. send)
+        else
+            permissionUI.customState:SetText("Named settings override Custom channels.")
         end
         permissionUI.previous:SetEnabled(permissionUI.page > 1)
         permissionUI.next:SetEnabled(permissionUI.page < pages)

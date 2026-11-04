@@ -2,9 +2,9 @@
 bootstrap:
 	python3 scripts/bootstrap.py
 format:
-	.tools/stylua/stylua Core.lua Minimap.lua Settings.lua Profile.lua Policy.lua Session.lua Requests.lua History.lua HistoryCapture.lua Protocol.lua Family.lua Pairing.lua Transport.lua WoWTransport.lua Activity.lua PairingPanel.lua PlayerMenu.lua Dashboard.lua Chat.lua WoWChat.lua Runtime.lua tests scripts/probes types/addon.lua
+	.tools/stylua/stylua Core.lua Minimap.lua Settings.lua Channels.lua Profile.lua Policy.lua Session.lua Requests.lua History.lua HistoryCapture.lua Protocol.lua Family.lua Pairing.lua Transport.lua WoWTransport.lua Activity.lua PairingPanel.lua PlayerMenu.lua Dashboard.lua Chat.lua WoWChat.lua Runtime.lua tests scripts/probes types/addon.lua
 format-check:
-	.tools/stylua/stylua --check Core.lua Minimap.lua Settings.lua Profile.lua Policy.lua Session.lua Requests.lua History.lua HistoryCapture.lua Protocol.lua Family.lua Pairing.lua Transport.lua WoWTransport.lua Activity.lua PairingPanel.lua PlayerMenu.lua Dashboard.lua Chat.lua WoWChat.lua Runtime.lua tests scripts/probes types/addon.lua
+	.tools/stylua/stylua --check Core.lua Minimap.lua Settings.lua Channels.lua Profile.lua Policy.lua Session.lua Requests.lua History.lua HistoryCapture.lua Protocol.lua Family.lua Pairing.lua Transport.lua WoWTransport.lua Activity.lua PairingPanel.lua PlayerMenu.lua Dashboard.lua Chat.lua WoWChat.lua Runtime.lua tests scripts/probes types/addon.lua
 lint:
 	python3 scripts/lint.py
 manifest:

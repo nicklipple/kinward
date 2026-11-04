@@ -460,7 +460,11 @@ function ns.HistoryView(profile, peer, filters, now)
     for i = #h.records, 1, -1 do
         local r = h.records[i]
         if
-            (not filters.channel or r.channel == filters.channel)
+            (
+                not filters.channel
+                or r.channel == filters.channel
+                or ns.ChannelCategory(r.channel) == filters.channel
+            )
             and (not filters.direction or r.direction == filters.direction)
             and (not filters.disposition or r.disposition == filters.disposition)
             and (not filters.seconds or r.endedAt >= now - filters.seconds)

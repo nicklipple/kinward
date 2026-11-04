@@ -25,6 +25,7 @@ setmetatable(env, {
     end,
 })
 for _, f in ipairs({
+    "Channels.lua",
     "Policy.lua",
     "Profile.lua",
     "Session.lua",
@@ -199,6 +200,9 @@ local function withWidgets(body)
             assert(self.kind == "DropdownButton")
             local entries = {}
             local root = {}
+            function root:SetScrollMode(height)
+                assert(height == 264)
+            end
             function root:CreateRadio(caption, isSelected, setSelected)
                 entries[#entries + 1] =
                     { caption = caption, isSelected = isSelected, setSelected = setSelected }
@@ -616,6 +620,9 @@ test(
                 return not rawequal(v, secret)
             end,
             GetServerTime = function()
+                return n.sim.now
+            end,
+            GetTimePreciseSec = function()
                 return n.sim.now
             end,
             CreateFrame = function()

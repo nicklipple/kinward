@@ -56,6 +56,18 @@ function ns.Evaluate(profile, channel, direction, identity, context)
     if profile.supervision ~= "paired" then
         return false, "recovery-required"
     end
+    if channel == "bnet" then
+        local account = identity and identity.account
+        local verified = account and context.bnetAccounts and context.bnetAccounts[account]
+        if verified and profile.guardians[account] then
+            return true, "guardian"
+        end
+        local grant = account and profile.policy.whispers["whisper-account:" .. account]
+        if verified and ns.GrantActive(grant, context) then
+            return true, "whisper-grant"
+        end
+        return false, "closed"
+    end
     if channel == "whisper" then
         local character = identity and ns.CharacterKey(identity.character)
         local account = identity and identity.account
@@ -78,7 +90,12 @@ function ns.Evaluate(profile, channel, direction, identity, context)
         return false, "closed"
     end
     local permissions = profile.policy.channels[channel]
-    if permissions and ns.GrantActive(permissions[direction], context) then
+    local grant = permissions and permissions[direction]
+    if not grant then
+        local category = profile.policy.channels[ns.ChannelCategory(channel)]
+        grant = category and category[direction]
+    end
+    if ns.GrantActive(grant, context) then
         return true, "channel-grant"
     end
     return false, "closed"

@@ -327,6 +327,8 @@ function ns.AcceptGuardianCandidate(t, peer, fields, item)
         return false
     end
     t.guardianCandidates = t.guardianCandidates or {}
+    t.nextCandidatePoll = t.nextCandidatePoll or {}
+    t.nextCandidatePoll[peer] = t.io.now() + (fields[6] ~= "" and 5 or 30)
     t.guardianCandidates[peer] = fields[6] ~= ""
             and { peer = fields[6], token = fields[7], generation = fields[4], expires = expires }
         or nil
@@ -370,7 +372,12 @@ function ns.TickGuardianship(t)
         return
     end
     for peer, child in pairs(f.profile.childProfiles) do
-        if f.profile.children[peer] and child.members and child.members[f.id] then
+        if
+            f.profile.children[peer]
+            and child.members
+            and child.members[f.id]
+            and now >= (t.nextCandidatePoll and t.nextCandidatePoll[peer] or 0)
+        then
             local pending = false
             for _, item in ipairs(t.work) do
                 if

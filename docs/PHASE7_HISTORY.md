@@ -278,3 +278,30 @@ Pinned Forever evidence: `Blizzard_Menu/11_0_0_MenuImplementationGuide.lua`
 `Blizzard_Menu/DropdownButton.lua` (`SetupMenu`), and
 `Blizzard_ChatFrame/Shared/TextToSpeechFrame.lua` (`CreateRadio` usage).
 Actual dropdown placement and interaction still require in-game verification.
+
+## Expanded player text routes and history pacing
+
+The adapter now handles Say, Yell, party, raid, instance, guild, officer,
+character and Battle.net whispers, emotes, public/custom channel messages, and
+community messages rendered through chat frames. Named custom channels can
+inherit the Custom channels setting or override either direction explicitly.
+Outgoing community and Battle.net messages use their corresponding API wrappers.
+Activity can select the expanded categories and captured custom-channel names.
+
+Transport deadlines still use server epoch time; packet spacing now uses the
+subsecond `GetTimePreciseSec` clock. Empty pairing-candidate polls back off to
+30 seconds. A two-client mocked regression uses integer server time and verifies
+that 18 blocked Say messages reach the guardian while background polls run.
+
+The native Communities window directly renders club messages outside the chat
+frame filter, and voice, inaccessible/secret values and other engine paths are
+not established coverage. In-game testing is still required; this change does not
+claim those surfaces are blocked or captured.
+
+Pinned Forever evidence: `Blizzard_ChatFrameBase/Shared/ChatFrameEditBox.lua`
+for chat/Battle.net send routes; `ChatFrameUtil.lua` for channel event arguments;
+`Blizzard_APIDocumentationGenerated/BattleNetDocumentation.lua` for
+`GetAccountInfoByID` and `SendWhisper`; `ClubDocumentation.lua` for
+`C_Club.SendMessage`; `ChatInfoDocumentation.lua` for channel info and events;
+`Blizzard_Communities/CommunitiesChatFrame.lua` for the separate native window;
+and `Blizzard_Console/Blizzard_Console.lua` for `GetTimePreciseSec`.

@@ -543,6 +543,7 @@ end
 ---@param t KinwardTransport
 function ns.TransportTick(t)
     local now = t.io.now()
+    local pacing = t.io.monotonic and t.io.monotonic() or now
     for key, assembly in pairs(t.incoming) do
         if now >= assembly.expires then
             t.incoming[key] = nil
@@ -575,7 +576,7 @@ function ns.TransportTick(t)
                 )
             then
                 forget(t, item, "cancelled")
-            elseif now >= item.due and now >= t.nextSend then
+            elseif now >= item.due and pacing >= t.nextSend then
                 local route = t.io.resolve(item.peer)
                 if not route then
                     item.result, item.due = "unreachable", now + 2
@@ -593,7 +594,7 @@ function ns.TransportTick(t)
                             .. item.wire:sub((item.cursor - 1) * 180 + 1, item.cursor * 180)
                         )
                     local result = t.io.send(route, packet)
-                    t.nextSend = now + 0.15
+                    t.nextSend = pacing + 0.15
                     item.result = result
                     if result == "sent" then
                         if item.receipt then

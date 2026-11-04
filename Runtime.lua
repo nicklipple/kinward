@@ -10,6 +10,13 @@ function ns.RuntimeStatus()
             .. t.family.id
             .. " · chat monitoring "
             .. (ns.chat and "active" or "connecting")
+            .. " · "
+            .. t.family.profile.role
+            .. "/"
+            .. t.family.profile.supervision
+            .. " · policy "
+            .. (t.family.profile.policyRevision or 0)
+            .. (ns.chat and (" · blocked reads " .. ns.chat.chat.blockedReads .. " · blocked sends " .. ns.chat.chat.blockedSends .. " · source history " .. (t.family.profile.history and #t.family.profile.history.records or 0)) or "")
             .. (
                 traffic
                     and (" · sent " .. traffic.sent .. " · received " .. traffic.received .. " · unknown senders " .. traffic.unmapped .. " · last send " .. traffic.lastSend .. " · last receive " .. traffic.lastReceive)

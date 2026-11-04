@@ -43,7 +43,9 @@ local env = strict({
         return #friends
     end,
     WOW_PROJECT_ID = 99,
+    C_Club = {},
     C_BattleNet = strict({
+        SendWhisper = original,
         GetFriendAccountInfo = function(i)
             return friends[i].account
         end,
@@ -101,6 +103,7 @@ setmetatable(env, {
     end,
 })
 for _, file in ipairs({
+    "Channels.lua",
     "Policy.lua",
     "Profile.lua",
     "Session.lua",
@@ -391,8 +394,10 @@ test(
         assert(#sends == 1 and a.chat.blockedSends == 1)
     end
 )
-test("unsupported send routes pass through with exact arguments and returns", function()
-    start(profile())
+test("allowed guild sends preserve exact arguments and returns", function()
+    local p = profile()
+    p.policy.channels.guild = { send = indefinite }
+    start(p)
     local x, y, z = env.C_ChatInfo.SendChatMessage(secret, "GUILD", 7, "target", nil, 99)
     assert(x == "result" and y == nil and z == 42)
     assert(sends[1].n == 6 and sends[1][3] == 7 and sends[1][6] == 99)

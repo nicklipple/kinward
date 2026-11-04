@@ -21,7 +21,7 @@ SLASH_KINWARD1 = "/kinward"
 SLASH_KINWARDPROBE1 = "/kinwardprobe"
 
 ---@class KinwardGrant
----@field mode 'indefinite'|'duration'|'session'
+---@field mode 'indefinite'|'duration'|'session'|'deny'
 ---@field expiresAt? number
 ---@field sessionId? string
 ---@field kind? 'character'|'account'
@@ -165,6 +165,7 @@ SLASH_KINWARDSIM1 = "/kinwardsim"
 ---@class KinwardTransportIO
 ---@field instance string Fresh per endpoint construction; alphanumeric/hyphen, <= 36 characters.
 ---@field now fun(): number
+---@field monotonic? fun(): number Subsecond clock for packet pacing only.
 ---@field friends fun(): table<string, boolean>
 ---@field resolve fun(peer: string): number?
 ---@field send fun(route: number, packet: string): string
@@ -538,3 +539,15 @@ SLASH_KINWARDSIM1 = "/kinwardsim"
 
 ---@class KinwardTransport
 ---@field traffic? KinwardTraffic
+
+---@class KinwardTransport
+---@field nextCandidatePoll? table<string, number>
+
+---@class KinwardNamespace
+---@field ChannelCatalog string[][]
+---@field CustomChannelKey fun(name: unknown): string?
+---@field PublicChannelKey fun(name: unknown, zone: unknown): string
+---@field ChannelCategory fun(channel: string): string
+
+---@class KinwardContext
+---@field bnetAccounts? table<string, boolean> Current engine-verified account-only identities.

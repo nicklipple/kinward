@@ -26,6 +26,7 @@ setmetatable(env, {
     end,
 })
 for _, f in ipairs({
+    "Channels.lua",
     "Policy.lua",
     "Profile.lua",
     "Session.lua",
@@ -200,6 +201,9 @@ local function withWidgets(body)
             assert(self.kind == "DropdownButton")
             local entries = {}
             local root = {}
+            function root:SetScrollMode(height)
+                assert(height == 264)
+            end
             function root:CreateRadio(caption, isSelected, setSelected)
                 entries[#entries + 1] =
                     { caption = caption, isSelected = isSelected, setSelected = setSelected }
@@ -831,7 +835,7 @@ test(
                 return false
             end
             local dropdown = ui.find("All channels")
-            assert(dropdown.kind == "DropdownButton" and #dropdown.menu == 8)
+            assert(dropdown.kind == "DropdownButton" and #dropdown.menu >= 8)
             assert(dropdown.menu[1].isSelected())
             ui.click("All outcomes") -- Preserve the allowed-reads filter.
             ui.click("Older")
@@ -964,6 +968,8 @@ local function withClientMocks(body)
             return frame
         end,
         C_ChatInfo = chatInfo,
+        C_BattleNet = {},
+        C_Club = {},
         ChatFrameUtil = {
             AddMessageEventFilter = function(e, f)
                 assert(not filters[e])

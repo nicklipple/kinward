@@ -229,6 +229,7 @@ local function apply(endpoint, fields, now, friends)
         elseif fields[11] == "" then
             p.policy.channels[channel] = p.policy.channels[channel] or {}
             p.policy.channels[channel][direction] = grant
+                or (ns.ChannelCategory(channel) ~= channel and { mode = "deny" } or nil)
         else
             return "invalid-policy"
         end

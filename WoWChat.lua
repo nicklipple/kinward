@@ -5,8 +5,34 @@ local events = {
     CHAT_MSG_WHISPER = "whisper",
     CHAT_MSG_PARTY = "party",
     CHAT_MSG_PARTY_LEADER = "party",
+    CHAT_MSG_SAY = "say",
+    CHAT_MSG_YELL = "yell",
+    CHAT_MSG_GUILD = "guild",
+    CHAT_MSG_OFFICER = "officer",
+    CHAT_MSG_RAID = "raid",
+    CHAT_MSG_RAID_LEADER = "raid",
+    CHAT_MSG_RAID_WARNING = "raid",
+    CHAT_MSG_INSTANCE_CHAT = "instance",
+    CHAT_MSG_INSTANCE_CHAT_LEADER = "instance",
+    CHAT_MSG_EMOTE = "emote",
+    CHAT_MSG_TEXT_EMOTE = "emote",
+    CHAT_MSG_CHANNEL = "channel",
+    CHAT_MSG_COMMUNITIES_CHANNEL = "communities",
+    CHAT_MSG_BN_WHISPER = "bnet",
 }
-local sends = { WHISPER = "whisper", PARTY = "party" }
+local sends = {
+    WHISPER = "whisper",
+    PARTY = "party",
+    SAY = "say",
+    YELL = "yell",
+    GUILD = "guild",
+    OFFICER = "officer",
+    RAID = "raid",
+    RAID_WARNING = "raid",
+    INSTANCE_CHAT = "instance",
+    EMOTE = "emote",
+    COMMUNITIES_CHANNEL = "communities",
+}
 
 ---Fresh candidate mapping from engine friendship records, never chat payloads.
 ---Use only after P1-ID establishes the account/character mapping in this client.
@@ -100,11 +126,13 @@ function ns.NewWoWChat(profile, io)
     end
     ---@type table<string, string>
     local accounts = {}
+    local bnetAccounts = {}
     local chat = ns.NewChat(profile, function()
         return {
             now = GetServerTime(),
             sessionId = sessionReady and profile.sessionId or "",
             accounts = accounts,
+            bnetAccounts = bnetAccounts,
         }
     end)
     chat.monitoring = true
@@ -141,7 +169,60 @@ function ns.NewWoWChat(profile, io)
         accounts[key] = account
         return { character = key, account = account }
     end
-    local function filter(_, event, text, sender, _, _, _, _, _, _, _, _, line)
+    local function bnetIdentity(id)
+        bnetAccounts = {}
+        if not canaccessvalue(id) or type(id) ~= "number" or id <= 0 then
+            return nil
+        end
+        local account = C_BattleNet.GetAccountInfoByID(id)
+        if
+            not account
+            or not canaccessvalue(account.isFriend)
+            or not account.isFriend
+            or not canaccessvalue(account.battleTag)
+            or not ns.ValidIdentifier(account.battleTag)
+        then
+            return nil
+        end
+        bnetAccounts[account.battleTag] = true
+        return { account = account.battleTag }
+    end
+    local function channelTarget(target)
+        if
+            not canaccessvalue(target) or (type(target) ~= "number" and type(target) ~= "string")
+        then
+            return "channel:unknown"
+        end
+        local _, name, _, community = GetChannelName(target)
+        if not canaccessvalue(name) or type(name) ~= "string" then
+            return "channel:unknown"
+        end
+        if canaccessvalue(community) and community then
+            return "communities"
+        end
+        local info = C_ChatInfo.GetChannelInfoFromIdentifier(name)
+        if not info or not canaccessvalue(info.zoneChannelID) then
+            return "channel:unknown"
+        end
+        return ns.PublicChannelKey(name, info.zoneChannelID)
+    end
+    local function filter(
+        _,
+        event,
+        text,
+        sender,
+        _,
+        _,
+        _,
+        _,
+        zone,
+        _,
+        baseName,
+        _,
+        line,
+        _,
+        bnSender
+    )
         if not active then
             return false
         end
@@ -149,16 +230,22 @@ function ns.NewWoWChat(profile, io)
             line = nil
         end
         local previousPrompt = chat.prompt
-        local senderIdentity = identity(sender)
-        local allowed = ns.ChatDecision(chat, events[event], "read", senderIdentity, line)
         local channel = events[event]
+        if channel == "channel" then
+            channel = canaccessvalue(zone)
+                    and canaccessvalue(baseName)
+                    and ns.PublicChannelKey(baseName, zone)
+                or "channel:unknown"
+        end
+        local senderIdentity = channel == "bnet" and bnetIdentity(bnSender) or identity(sender)
+        local allowed = ns.ChatDecision(chat, channel, "read", senderIdentity, line)
         local selfKey = io.selfCharacter and io.selfCharacter()
         if not canaccessvalue(selfKey) or type(selfKey) ~= "string" then
             selfKey = nil
         else
             selfKey = ns.CharacterKey(selfKey)
         end
-        if channel == "party" and (not selfKey or not senderIdentity) then
+        if channel ~= "whisper" and channel ~= "bnet" and (not selfKey or not senderIdentity) then
             ns.CaptureRead(
                 chat,
                 channel,
@@ -166,9 +253,16 @@ function ns.NewWoWChat(profile, io)
                 nil,
                 allowed,
                 line,
-                "Party capture unavailable without verified local/sender identity."
+                channel == "party"
+                        and "Party capture unavailable without verified local/sender identity."
+                    or "Chat capture unavailable without local/sender identity."
             )
-        elseif channel == "party" and senderIdentity and senderIdentity.character == selfKey then
+        elseif
+            channel ~= "whisper"
+            and channel ~= "bnet"
+            and senderIdentity
+            and senderIdentity.character == selfKey
+        then
             ns.CaptureOutput(chat, channel, nil, accessibleBody(text), line)
         else
             ns.CaptureRead(chat, channel, senderIdentity, accessibleBody(text), allowed, line)
@@ -193,9 +287,9 @@ function ns.NewWoWChat(profile, io)
             return original(text, chatType, language, target, ...)
         end
         local accessible = canaccessvalue(chatType)
-        local channel = accessible and sends[chatType]
-        if accessible and not channel then
-            return original(text, chatType, language, target, ...)
+        local channel = accessible and sends[chatType] or "other"
+        if accessible and chatType == "CHANNEL" then
+            channel = channelTarget(target)
         end
         local recipient = channel == "whisper" and identity(target) or nil
         local allowed = ns.ChatDecision(chat, channel or "unknown", "send", recipient)
@@ -211,9 +305,42 @@ function ns.NewWoWChat(profile, io)
         -- This is an attempt, not confirmation of output or remote receipt.
         return original(text, chatType, language, target, ...)
     end
+    local originalBnet, originalClub = C_BattleNet.SendWhisper, C_Club and C_Club.SendMessage
+    local function extraSend(channel, body, recipient)
+        local allowed = ns.ChatDecision(chat, channel, "send", recipient)
+        ns.CaptureSend(chat, channel, recipient, accessibleBody(body), allowed)
+        if not allowed then
+            print("Kinward: this send was blocked by your current chat permissions.")
+        end
+        return allowed
+    end
+    local bnetWrapped = function(id, body, ...)
+        if not active or profile.supervision == "unpaired" then
+            return originalBnet(id, body, ...)
+        end
+        if not extraSend("bnet", body, bnetIdentity(id)) then
+            return false
+        end
+        return originalBnet(id, body, ...)
+    end
+    local clubWrapped = function(club, stream, body, ...)
+        if not active or profile.supervision == "unpaired" then
+            return originalClub(club, stream, body, ...)
+        end
+        if extraSend("communities", body, nil) then
+            return originalClub(club, stream, body, ...)
+        end
+    end
+    if originalBnet then
+        C_BattleNet.SendWhisper = bnetWrapped
+    end
+    if originalClub then
+        C_Club.SendMessage = clubWrapped
+    end
     local frame = CreateFrame("Frame")
     frame:RegisterEvent("PLAYER_ENTERING_WORLD")
     frame:RegisterEvent("CHAT_MSG_WHISPER_INFORM")
+    frame:RegisterEvent("CHAT_MSG_BN_WHISPER_INFORM")
     frame:RegisterEvent("PLAYER_LOGOUT")
     local outputs, outputOrder = {}, {}
     frame:SetScript("OnEvent", function(_, event, initial, reload, ...)
@@ -248,7 +375,7 @@ function ns.NewWoWChat(profile, io)
             ns.FlushHistorySends(chat, true)
             ns.HistoryHeartbeat(chat, chat.restrictedSince ~= nil)
             ns.HistoryGap(chat, "Monitoring paused for logout or reload.")
-        elseif event == "CHAT_MSG_WHISPER_INFORM" then
+        elseif event == "CHAT_MSG_WHISPER_INFORM" or event == "CHAT_MSG_BN_WHISPER_INFORM" then
             -- lineID is payload 11; initial/reload occupy payload 1/2 here.
             local line = select(9, ...)
             if
@@ -266,8 +393,9 @@ function ns.NewWoWChat(profile, io)
                     chat.observedOutputs = chat.observedOutputs + 1
                     ns.CaptureOutput(
                         chat,
-                        "whisper",
-                        identity(reload),
+                        event == "CHAT_MSG_BN_WHISPER_INFORM" and "bnet" or "whisper",
+                        event == "CHAT_MSG_BN_WHISPER_INFORM" and bnetIdentity(select(11, ...))
+                            or identity(reload),
                         accessibleBody(initial),
                         line
                     )
@@ -304,14 +432,31 @@ function ns.NewWoWChat(profile, io)
             end
             frame:UnregisterEvent("PLAYER_ENTERING_WORLD")
             frame:UnregisterEvent("CHAT_MSG_WHISPER_INFORM")
+            frame:UnregisterEvent("CHAT_MSG_BN_WHISPER_INFORM")
             frame:UnregisterEvent("PLAYER_LOGOUT")
             frame:SetScript("OnEvent", nil)
             frame:SetScript("OnUpdate", nil)
+            local clean = true
+            if originalBnet then
+                if C_BattleNet.SendWhisper == bnetWrapped then
+                    C_BattleNet.SendWhisper = originalBnet
+                else
+                    clean = false
+                end
+            end
+            if originalClub then
+                if C_Club.SendMessage == clubWrapped then
+                    C_Club.SendMessage = originalClub
+                else
+                    clean = false
+                end
+            end
             if C_ChatInfo.SendChatMessage == wrapped then
                 C_ChatInfo.SendChatMessage = original
-                return "stopped-reload-to-clear-taint"
+            else
+                clean = false
             end
-            return "chained-wrapper-reload-required"
+            return clean and "stopped-reload-to-clear-taint" or "chained-wrapper-reload-required"
         end,
     }
     ns.chat = adapter

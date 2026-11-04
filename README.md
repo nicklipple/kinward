@@ -8,8 +8,9 @@ request guardianship, and accept on the parent. Both accounts must be Battle.net
 friends, online in the same WoW version, and have Kinward installed.
 
 Pairing, permission updates, access requests and Activity history use the live
-connection. Chat monitoring/filtering currently covers ordinary character
-whispers and party chat; other chat surfaces are not established coverage.
+connection. Chat monitoring/filtering covers accessible player text in chat frames, including
+custom channels and Battle.net whispers. The separate Communities window, voice,
+secret values and other engine paths are not established coverage.
 No special activation command is required. `/kinward status` and the Connection
 tab show connection and packet-delivery details. Real-client behavior still
 requires verification; automated tests do not establish complete enforcement.

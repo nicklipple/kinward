@@ -140,6 +140,7 @@ function ns.NewWoWTransport(family, instance)
     local t = ns.NewTransport(family, {
         instance = instance,
         now = GetServerTime,
+        monotonic = GetTimePreciseSec,
         friends = function()
             local friends = discover()
             return friends
