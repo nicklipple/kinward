@@ -27,6 +27,11 @@ local function client(saved)
     })
     local env = {
         type = type,
+        pairs = pairs,
+        ipairs = ipairs,
+        next = next,
+        math = { huge = math.huge },
+        tonumber = tonumber,
         tostring = tostring,
         string = { format = string.format },
         GuardianDB = saved,

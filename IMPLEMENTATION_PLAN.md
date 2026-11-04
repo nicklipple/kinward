@@ -1,6 +1,9 @@
 # Guardian implementation plan
 
-Status: planned. Only the initial scaffold is implemented.
+Status: Phases 2–3 shared logic and Phase 4 transport/dashboard implementation are available.
+Phase 4 live activation and two-account acceptance remain gated by P1-ID/P1-ROUTE.
+Phase 1 live-client acceptance remains pending; runtime chat enforcement is not
+yet connected.
 [REQUIREMENTS.md](REQUIREMENTS.md) defines the product behavior. Implement the
 phases in order; each numbered task should fit a focused, reviewable change.
 Do not start by building the entire settings interface or transport framework.
@@ -31,7 +34,7 @@ This phase provides no pairing, restrictions or monitoring.
 
 Purpose: resolve the risks that could change the product before building on them.
 
-- [ ] **1.1 API evidence matrix.** Record the Forever symbols/source paths,
+- [x] **1.1 API evidence matrix.** Record the Forever symbols/source paths,
   expected loading order and client test procedure for chat filters, send paths,
   Battle.net identity, addon messages, clocks/session events, bubbles and voice.
   Mark each capability verified, unsupported or still untested. Do not silently
@@ -61,28 +64,37 @@ with the user before claiming or building a working parental-control release.
 Work on pure logic can proceed while two-account tests are pending, but this
 phase must not be marked verified based on mocks.
 
+### Current test availability
+
+The user does not have two accounts available for probing (2026-11-03).
+Defer two-account experiments and manual probing until the single-client harness
+is available. Phase 2 now supplies isolated parent/child endpoints in one client. These are simulated sessions, not two
+actual WoW logins. Use the harness to validate shared logic and family workflows;
+keep real chat prevention, Battle.net identity and live delivery gates open.
+Phase 1 is not marked verified by this deferral or by simulator results.
+
 ## Phase 2 — Policy, persistence and single-client test harness
 
 Purpose: make the rules deterministic and testable without the game.
 
-- [ ] **2.1 Versioned account profile.** Migrate the existing `GuardianDB` into a
+- [x] **2.1 Versioned account profile.** Migrate the existing `GuardianDB` into a
   documented schema for role, family relationships, pairing generation, policy
   and bounded queues. Preserve valid data; distinguish absent initial data from
   damaged paired state so corruption cannot silently remove supervision.
-- [ ] **2.2 Pure policy evaluator.** Evaluate channel/read/send permissions and
+- [x] **2.2 Pure policy evaluator.** Evaluate channel/read/send permissions and
   bidirectional whisper grants. Unpaired means unrestricted; paired means closed
   defaults with the guardian control path preserved. Party permission never
   grants whisper permission. Unknown account identity does not satisfy a friend
   approval. Use normalized character/realm identity and verified account mappings.
-- [ ] **2.3 Expiry and session model.** Inject time and session context. Implement
+- [x] **2.3 Expiry and session model.** Inject time and session context. Implement
   indefinite, explicit-duration and until-logout grants. Reload preserves session
   grants; a new login invalidates them. Re-evaluate expiry after offline time.
-- [ ] **2.4 Isolated parent/child simulator.** Instantiate two independent stores
+- [x] **2.4 Isolated parent/child simulator.** Instantiate two independent stores
   and endpoints in one client, sharing production logic and an in-memory
   transport. Add a second guardian and second child as test fixtures when needed.
   Provide delivery delay, loss, duplication, reordering, disconnect and clock
   controls. Never send simulator traffic or modify live saved pairing/policy.
-- [ ] **2.5 Tooling updates.** Extend TOC ordering, types, formatting targets and
+- [x] **2.5 Tooling updates.** Extend TOC ordering, types, formatting targets and
   tests as runtime modules are added. Maintain runtime-manifest completeness and
   keep test/probe assets out of both zip and CurseForge packages.
 
@@ -93,27 +105,35 @@ Acceptance: automated cases cover default rules, migrations/malformed data,
 read/send independence, party-versus-whisper separation, unknown identity and
 all expiry modes. Simulator state is demonstrably isolated from live state.
 
+Implemented: [profile schema](docs/PROFILE_SCHEMA.md) and
+[simulator commands](docs/PHASE2_SIMULATOR.md). Automated cases cover migration,
+malformed/recovery state, independent permissions, verified identities, expiry,
+transport faults and live-state isolation. Session and clock inputs are injected;
+live lifecycle detection and chat enforcement remain gated by Phase 1. The user reported positive feedback after the Retail in-game simulator
+checklist; individual outputs were not captured. Forever loading/use remains
+unverified; see [the result ledger](docs/PHASE1_RESULTS.md).
+
 ## Phase 3 — Pairing and authenticated family operations
 
 Purpose: establish who can control or monitor each child.
 
-- [ ] **3.1 Minimal protocol.** Define versioned message envelopes, operation IDs,
+- [x] **3.1 Minimal protocol.** Define versioned message envelopes, operation IDs,
   relationship/generation IDs, bounded payloads and strict decoding. Validate
   transport-reported identity rather than trusting sender fields in payloads.
   Define acknowledgements, duplicate handling and unsupported-version behavior.
-- [ ] **3.2 First guardian pairing.** Implement short-lived single-use codes,
+- [x] **3.2 First guardian pairing.** Implement short-lived single-use codes,
   attempt limits, friendship verification and explicit confirmation tied to the
   intended peer. Pairing completion installs closed defaults atomically. Do not
   grant history access or policy authority to someone who merely knows a code.
-- [ ] **3.3 Additional guardians and children.** Maintain independent child
+- [x] **3.3 Additional guardians and children.** Maintain independent child
   profiles on the guardian side. Require an existing guardian's approval for
   additions to an already supervised child. Let either authorized guardian edit
   policy and remove another, with confirmation.
-- [ ] **3.4 Stop supervision and recovery.** Require explicit confirmation to
+- [x] **3.4 Stop supervision and recovery.** Require explicit confirmation to
   remove the last guardian. Use a new relationship generation after reset or
   re-pairing; reject traffic from revoked or stale relationships, including
   delayed policy changes and history requests. Clear associated delivery work.
-- [ ] **3.5 Adversarial protocol tests.** Exercise wrong/expired/reused codes,
+- [x] **3.5 Adversarial protocol tests.** Exercise wrong/expired/reused codes,
   unpaired senders, spoofed payload identity, oversized/malformed messages,
   revoked guardians, replay and reconnect during pairing. This protects against
   unrelated players, not local modification by a child.
@@ -122,6 +142,15 @@ Deliverable: pairing and family membership working in the simulator.
 
 Acceptance: only an authorized current guardian can change policy or receive
 history; a reset/re-pair cannot restore an old guardian's access.
+
+Implemented in `Protocol.lua` and `Family.lua`, with durable replay state,
+peer-bound pairing confirmation, membership generation rotation and per-child
+guardian records. [Protocol contracts and simulator walkthrough](docs/PHASE3_PROTOCOL.md)
+document limits and injected trust inputs. Automated adversarial tests and the
+simulator exercise shared production logic. History is an authorization gate
+only; record storage/delivery remains Phase 7. Live authenticated identity,
+friendship, random code/token generation and delivery remain adapter/client
+gates; no Phase 3 in-game verification is claimed.
 
 ## Phase 4 — Live transport and the first guardian dashboard
 
@@ -134,15 +163,15 @@ Purpose: make a policy change travel between real installations visibly.
 - [ ] **4.2 Reconnect and alt discovery.** Resolve approved peers through verified
   Battle.net data, resume delivery after both endpoints become reachable and
   reconcile current membership/policy. Keep ambiguous identity unresolved.
-- [ ] **4.3 Per-setting synchronization.** The child orders accepted changes and
+- [x] **4.3 Per-setting synchronization.** The child orders accepted changes and
   assigns revisions. Retries retain operation IDs and cannot create new writes.
   Independent settings do not overwrite each other. Surface last-applied order
   and delivery deadlines so stale queued edits are not applied unexpectedly.
-- [ ] **4.4 Minimal functional UI.** Provide role setup, pairing, guardian child
+- [x] **4.4 Minimal functional UI.** Provide role setup, pairing, guardian child
   list, membership controls and read/send permission controls. Show pending,
   delivered and applied acknowledgement states separately. Child UI shows
   supervision status and currently effective permissions.
-- [ ] **4.5 Presence.** Show responding, last contact and unreachable. Do not label
+- [x] **4.5 Presence.** Show responding, last contact and unreachable. Do not label
   an unreachable child as definitely offline or addon-disabled. Distinguish
   monitoring/transport loss from the existing policy continuing to operate.
 
@@ -153,6 +182,19 @@ Acceptance: two-account tests demonstrate delivery, acknowledgements, alt
 switches and offline recovery. Tests show per-setting conflict ordering and no
 cross-child data leakage. If two accounts are unavailable, retain an explicit
 unverified gate; the simulator does not satisfy it.
+
+Implemented: `Transport.lua`, `WoWTransport.lua` and `Dashboard.lua`, with bounded
+fragmentation, rate limits, receipts, retries, deadlines, child revisions,
+revision-bound snapshots, per-setting views, a visual dashboard with child selection and dedicated permission/family controls and an
+isolated network harness. `/guardian ui` opens the local dashboard. See
+[contracts, source evidence and walkthrough](docs/PHASE4_TRANSPORT.md).
+Tasks 4.1–4.2 remain unchecked because the candidate Battle.net adapter cannot
+be activated until Phase 1 validates the route, sender identity and local
+identity/token bootstrap. Its injected/mocked branch is tested; no live routing,
+alt discovery or reconnect result is claimed. Tasks 4.3–4.5 are implemented and
+automatically tested; widget rendering and live behavior still need the client.
+The overall Phase 4 deliverable/acceptance remains **unverified**. No simulator
+result closes the two-account gate, and no live chat enforcement is installed.
 
 ## Phase 5 — First complete chat-control slice
 
@@ -272,5 +314,12 @@ prevention or identity problems are not hidden behind a passing simulator.
 | Reviewable supervision | 7 | Guardian sees accessible history and explicit gaps. |
 | First release | 8; all required client gates passed | Supported channels/surfaces and limits are documented and tested. |
 
-The next implementation task is **1.1**, followed by the smallest probes needed
-for **1.2–1.4**. No new framework or third-party runtime library is assumed.
+Phase 1 evidence and probe procedures are in [docs/CAPABILITIES.md](docs/CAPABILITIES.md)
+and [docs/PHASE1_PROBES.md](docs/PHASE1_PROBES.md). **1.2–1.4 remain open** for
+actual client experiments; two-account tests are deferred because accounts are
+unavailable. Phases 2–3 shared logic and Phase 4 transport/dashboard code are implemented.
+Close the Phase 1 identity/routing gate and complete Phase 4 live integration
+and two-account acceptance before claiming a real paired-control milestone.
+Record eventual client results in
+[docs/PHASE1_RESULTS.md](docs/PHASE1_RESULTS.md); mocks do not close these gates.
+No new framework or third-party runtime library is assumed.

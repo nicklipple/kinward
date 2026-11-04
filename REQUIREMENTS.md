@@ -2,7 +2,8 @@
 
 Agreed requirements from the parent/child workflow discussion. This document
 specifies intended behavior, not functionality already implemented. The current
-runtime is still the initialization/settings/slash-command scaffold.
+runtime includes the Phase 2 profile/policy foundation; live enforcement remains
+pending.
 
 ## Scope and trust
 

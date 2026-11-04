@@ -8,9 +8,13 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 ADDON = ROOT
-DEV_DIRS = {'.git', '.github', '.tools', '.reports', 'dist', 'tests', 'types', 'reference', 'scripts'}
+DEV_DIRS = {'.git', '.github', '.tools', '.reports', 'dist', 'tests', 'types', 'reference', 'scripts', 'docs'}
 
 def validate():
+    if (ROOT / 'Phase1Probe.lua').exists() or 'Phase1Probe.lua' in (ROOT / 'Guardian.toc').read_text():
+        raise ValueError('Development probe staged; run python3 scripts/phase1_probe.py remove before checking/packaging')
+    if (ROOT / 'Phase2Simulator.lua').exists() or 'Phase2Simulator.lua' in (ROOT / 'Guardian.toc').read_text():
+        raise ValueError('Development simulator staged; run python3 scripts/phase2_simulator.py remove before checking/packaging')
     seen = set()
     files = ['Guardian.toc']
     def include(raw, parent):
@@ -39,7 +43,7 @@ def validate():
                 if element.tag.rsplit('}', 1)[-1] in ('Include', 'Script') and 'file' in element.attrib:
                     include(element.attrib['file'], rel.parent)
     toc = (ADDON / 'Guardian.toc').read_text()
-    for key, value in [('Interface', '16001'), ('SavedVariables', 'GuardianDB')]:
+    for key, value in [('Interface', '16001, 120105'), ('SavedVariables', 'GuardianDB')]:
         if re.findall(r'^## ' + key + r':\s*(.+)$', toc, re.M) != [value]:
             raise ValueError(f'Expected one {key}: {value}')
     for line in toc.splitlines():

@@ -12,10 +12,12 @@ client. The installation root `.git` was empty/read-only; Guardian has its own
 repository. Other addons and client files are untouched. This location does not
 change the Forever API baseline or establish Retail compatibility.
 
-The manifest uses **16001**, corroborated by installed Forever manifests
+The shared manifest declares **16001, 120105**. Forever **16001** is corroborated by installed Forever manifests
 (`EnhanceQoLCooldownPulse_Camelot.toc`, `AtlasBIStooltips.toc` and
-`SpokenAll.toc`). The running client's interface return and loading behavior
-remain unverified. Confirm with `/dump GetBuildInfo()` in Forever; the fourth
+`SpokenAll.toc`). The user reported Retail build **70783** and interface **120105** from
+`GetBuildInfo()` on 2026-11-03. This supplies the Retail development loading number;
+it does not verify runtime behavior or replace the Forever source baseline.
+Forever's running-client interface return and loading behavior remain unverified. Confirm with `/dump GetBuildInfo()` in Forever; the fourth
 return must be 16001. Do not infer it from Mainline's version number.
 
 ## Pinned development baseline and provenance
@@ -44,17 +46,20 @@ LuaLS loads Ketho Core's WoW Lua environment, widgets, types, Mainline generated
 API annotations and supporting definitions. `Data/Classic.lua` is excluded.
 Only the FrameXML slash registry is selected from the submodule. The full UI
 reference is never used as a definition library. New Forever corrections belong
-in `types/forever/` with symbol/path evidence; none are currently needed.
+in `types/forever/` with symbol/path evidence; the Phase 1 filter namespace correction is recorded in
+`types/forever/ChatFrameUtil.lua` against the pinned filter implementation.
 Annotations may contain APIs unavailable in Forever: every new runtime API must
 be independently verified against the pinned Forever source or actual client.
 
 ## Loading, ownership and boundaries
 
-The TOC explicitly loads `Settings.lua` then `Core.lua`. WoW supplies the addon
-name and private shared namespace as chunk arguments. `Settings.lua` only adds
-a pure normalization function to that namespace. It preserves boolean `enabled`
-values, defaults missing/malformed values to true, preserves unknown fields, and
-replaces malformed top-level values with a fresh table.
+The TOC explicitly loads `Policy.lua`, `Profile.lua`, `Session.lua`,
+`Protocol.lua`, `Family.lua`, `Settings.lua`, then `Core.lua`, using WoW's private chunk namespace. The first
+five modules expose pure functions; Profile calls Policy's character-key helper
+only during normalization, after all modules have loaded. Settings records the
+schema version. See [docs/PROFILE_SCHEMA.md](docs/PROFILE_SCHEMA.md) for migration,
+recovery behavior, identity and expiry contracts. No live session/identity/chat
+adapter is installed in Phase 2.
 
 `Core.lua` owns the narrow WoW boundary: an anonymous frame, `ADDON_LOADED`,
 `C_AddOns.GetAddOnMetadata`, the slash registry and chat output via `print`.
@@ -88,7 +93,7 @@ Evidence in the pinned Forever reference (relative to `reference/blizzard-ui/`):
 ## What checks establish
 
 `make check` verifies Lua 5.1 formatting, LuaLS diagnostics for runtime source,
-manifest paths/casing/uniqueness/completeness, and seven strict Lua 5.1 tests.
+manifest paths/casing/uniqueness/completeness, and strict Lua 5.1 initialization, policy and simulator tests.
 Tests execute the actual TOC's Lua order and loading arguments, mocking only
 used WoW calls. Unknown global/API reads fail. Tests are checked by execution
 rather than loading standalone Lua facilities into the WoW analysis environment.
@@ -112,3 +117,98 @@ loading, saved-variable persistence across sessions or UI behavior. Secret
 values, protected actions, taint and combat lockdown require real-client tests
 when future functionality touches those systems. No in-game verification has
 been performed.
+
+## Phase 1 development probes
+
+See `docs/CAPABILITIES.md` for source evidence and unsupported/inaccessible
+filter states. `scripts/phase1_probe.py` explicitly stages a marker-only probe
+and temporary TOC entry; it is inactive until `/guardianprobe start`. The
+manifest rejects staged probes, and `.pkgmeta` excludes probes and docs. Checks
+include strict Lua 5.1 probe boundary/lifecycle tests and isolated staging tests.
+These test developer tooling, not live enforcement. All runtime/client and
+two-account gates remain unverified in `docs/PHASE1_RESULTS.md`.
+
+
+## Phase 2 simulator
+
+`scripts/probes/Phase2Simulator.lua` shares the production pure modules but owns
+four independent fixture profiles and a bounded in-memory transport. Explicit
+staging adds `/guardiansim`; all state is closure-local and never accesses live
+SavedVariables or live messaging. Fault controls and usage are documented in
+[docs/PHASE2_SIMULATOR.md](docs/PHASE2_SIMULATOR.md). Staged harnesses are rejected
+by the manifest and excluded by `.pkgmeta`. Lua tests reject unexpected global
+reads/writes, verify state isolation, and exercise the actual slash commands.
+All existing runtime globals remain intentional; the extra development-only
+`SLASH_GUARDIANSIM1` is typed alongside the probe slash global.
+
+
+## Shared-client manifest
+
+`Guardian.toc` uses the supported comma-delimited interface list `16001, 120105`
+to load the same files on Forever and the user's Retail development client.
+Manifest checks pin both exact values and preserve runtime completeness; both
+local zip and CurseForge packages retain this single manifest. The TOC list is
+loading metadata, not proof of working chat enforcement or cross-client API
+coverage. Future adapters still need separate client evidence.
+
+Primary tool-author reference: [TOC Interface Updater multi-client support](https://github.com/p3lim/toc-interface-updater#flavor).
+CurseForge's [flavor-tagging instructions](https://support.curseforge.com/support/solutions/articles/9000209856)
+explain that uploaded releases also need version tags; TOC metadata alone does
+not set the website's advertised supported versions. No upload was performed.
+
+
+## Phase 3 family authorization
+
+`Protocol.lua` provides bounded versioned wire decoding; `Family.lua` owns pure
+pairing/membership operations, confirmed reset, persisted replay protection and
+correlated replies. Membership changes rotate a fresh injected relationship
+generation. Profile schema 1 gains additive bounded replay, sender-sequence and
+per-child guardian records; malformed authority state enters recovery. No new
+WoW globals/APIs or live transport have been added. All peer identity, friendship,
+clock, randomness and generation uniqueness guarantees must come from a verified
+adapter. [Protocol contracts and simulator commands](docs/PHASE3_PROTOCOL.md)
+describe these boundaries and remaining client gates. The existing staged
+harness can start unpaired endpoints with `family-reset`. History authorization
+is tested; capture and record delivery remain Phase 7. No Phase 3 live-client
+verification is claimed.
+
+
+## Phase 4 transport and dashboard
+
+The explicit runtime order now places `Transport.lua`, `WoWTransport.lua` and
+`Dashboard.lua` after `Family.lua`, before Settings/Core. These modules declare
+functions without making WoW calls at load. Core retains its original diagnostic
+slash output; `/guardian ui` lazily constructs a visual dashboard with child selection, permission controls and family actions
+from the normalized live profile. No live transport is installed on ADDON_LOADED.
+New widget APIs and the candidate Battle.net route are evidenced against the
+pinned Forever source in [docs/PHASE4_TRANSPORT.md](docs/PHASE4_TRANSPORT.md).
+No new globals, libraries or services are introduced.
+
+Transport's clock, friendship, routing and send boundary is injected. Production
+policy operations carry absolute delivery deadlines, receipts and correlated
+application revisions. Child revisions/replay entries persist; work, reassembly,
+contacts and partially collected snapshots are transient. Guardian caches are
+bounded and validated during normalization. The staged Phase 2 harness adds a
+separate Phase 4 network model using the production transport, including reply
+loss/delay, receipts, independent dashboards and clock control. It never obtains
+live settings, identity, transport or SavedVariables.
+
+`NewWoWTransport` returns before any API call unless recorded routing acceptance
+is provided. The candidate enumerates trusted Battle.net friendships and freshly
+resolved same-project game handles, discards ambiguous/inaccessible identity,
+handles numeric send failures and polls known children. The precise event sender
+mapping, local identity bootstrap and fresh tokens remain Phase 1 gates. This
+adapter is deliberately not reachable from a slash override. Twenty-three strict
+Phase 4 tests cover the shared flow and mocked adapter/widget boundaries. They do
+not establish live delivery, actual widgets, lockdown, taint or chat enforcement.
+
+
+The visual dashboard keeps one frame per model and captures exact targets for
+confirmation. Button actions pass separate arguments to production logic,
+including spaced realm names. Read/send states and delivery states are separate;
+whisper grants remain bidirectional. Slash commands remain diagnostic tooling.
+The explicitly staged harness supplies `/guardian demo`, endpoint switching,
+automatic fixture-clock advancement and outage controls. Its frame driver is
+created only on explicit demo activation and never obtains live SavedVariables
+or messaging. Additional widget APIs are pinned in PHASE4_TRANSPORT.md. No actual
+in-game rendering or protected-state verification is claimed by mock tests.

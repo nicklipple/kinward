@@ -1,11 +1,18 @@
 # Guardian
 
 The planned parental-control behavior is specified in
-[REQUIREMENTS.md](REQUIREMENTS.md). It is not implemented by the scaffold yet.
+[REQUIREMENTS.md](REQUIREMENTS.md). The policy and simulated family-pairing foundation is implemented; live pairing
+and chat enforcement are pending. The [Phase 4 transport/dashboard walkthrough](docs/PHASE4_TRANSPORT.md) documents
+`/guardian ui` (visual role, child, permission and family controls) and the
+isolated `/guardian demo` network demo (requires the staged development harness). Live transport activation remains
+gated by unverified Phase 1 identity/routing.
 See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for phased tasks and
-acceptance criteria.
+acceptance criteria. Phase 1 source evidence, support limits and developer-only
+probe instructions are in [docs/CAPABILITIES.md](docs/CAPABILITIES.md). Live-client
+and two-account acceptance is still pending.
 
-Minimal WoW: Forever addon: saved settings and `/guardian`, which prints the
+WoW: Forever addon with versioned profiles, a pure policy engine and an isolated
+[command-driven simulator](docs/PHASE2_SIMULATOR.md). `/guardian` prints the
 version and whether initialization completed. Target source: **1.60.1.70755**,
 interface **16001** (confirm the running client with `/dump GetBuildInfo()`).
 See [ARCHITECTURE.md](ARCHITECTURE.md) for pins, evidence and verification limits.
@@ -36,8 +43,9 @@ The zip is `dist/Guardian-0.1.0.zip` with a single top-level `Guardian/` directo
 The development checkout currently lives at
 `_retail_/Interface/AddOns/Guardian/`, as requested until Forever releases.
 It is already in the client's addon discovery location; edits require only a
-`/reload` (restart the client after adding the addon). The manifest still targets
-Forever interface 16001; this placement does not verify Retail compatibility.
+`/reload` (restart the client after adding the addon). The shared manifest lists Forever interface 16001 and Retail interface 120105
+(the latter reported by the user from build 70783). This enables loading for
+Retail development; runtime behavior remains unverified on both clients.
 
 For installation elsewhere, choose the client's AddOns directory, close the
 game, then run:

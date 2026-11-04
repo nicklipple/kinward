@@ -17,3 +17,6 @@ ignore:
   - REQUIREMENTS.md
   - IMPLEMENTATION_PLAN.md
   - Makefile
+  - docs
+  - Phase1Probe.lua
+  - Phase2Simulator.lua

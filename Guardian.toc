@@ -1,7 +1,15 @@
-## Interface: 16001
+## Interface: 16001, 120105
 ## Title: Guardian
-## Notes: Minimal Forever addon scaffold.
+## Notes: Forever policy foundation; live enforcement pending.
 ## Version: 0.1.0
 ## SavedVariables: GuardianDB
+Policy.lua
+Profile.lua
+Session.lua
+Protocol.lua
+Family.lua
+Transport.lua
+WoWTransport.lua
+Dashboard.lua
 Settings.lua
 Core.lua

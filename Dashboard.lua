@@ -1,0 +1,875 @@
+local _, ns = ...
+---@cast ns GuardianNamespace
+
+---@param profile GuardianSettings
+---@param transport? GuardianTransport
+---@param now? fun(): number
+---@return GuardianDashboard
+function ns.NewDashboard(profile, transport, now)
+    return {
+        profile = profile,
+        transport = transport,
+        now = now or (transport and transport.io.now) or function()
+            return math.huge
+        end,
+        message = "Ready. Live routing remains unverified; chat enforcement is pending Phase 5.",
+    }
+end
+
+---@param d GuardianDashboard
+---@param message string
+---@return string
+function ns.DashboardCommand(d, message)
+    local w = {}
+    for word in message:gmatch("%S+") do
+        w[#w + 1] = word
+    end
+    local p, t = d.profile, d.transport
+    local result =
+        "Commands: role guardian|child; invite PEER CODE; pair CHILD CODE; confirm PEER OP confirm; sync CHILD; inspect CHILD CHANNEL read|send [TARGET]; allow|deny CHILD CHANNEL read|send [TARGET]; add CHILD PEER OP confirm; remove CHILD PEER confirm|stop; stop confirm"
+    if w[1] == "role" then
+        if
+            p.supervision == "unpaired"
+            and not next(p.children)
+            and not next(p.guardians)
+            and (w[2] == "child" or w[2] == "guardian")
+        then
+            p.role, result = w[2], "Role saved: " .. w[2]
+        else
+            result = "Role change unavailable while relationships exist."
+        end
+    elseif not t then
+        result = "Live routing/identity gate is open. Use the staged /guardiansim network harness. "
+            .. result
+    elseif w[1] == "invite" and w[2] and w[3] then
+        result = ns.FamilyInvite(t.family, w[2], w[3], t.io.now())
+                and "Invitation created (120 seconds). Confirm the exact peer and operation locally."
+            or "Invitation rejected."
+    elseif w[1] == "confirm" then
+        local _, reason =
+            ns.FamilyConfirm(t.family, w[2], w[3], w[4] == "confirm", t.io.now(), t.io.friends())
+        result = reason
+    elseif w[1] == "stop" then
+        local _, reason = ns.FamilyReset(t.family, w[2] == "confirm")
+        result = reason
+    elseif w[2] then
+        local kind, args = w[1], {}
+        if kind == "pair" then
+            args = { w[3] or "" }
+        elseif kind == "allow" or kind == "deny" then
+            args = {
+                w[3] or "",
+                w[4] or "",
+                kind == "allow" and "indefinite" or "revoke",
+                "",
+                "",
+                w[5] or "",
+            }
+            kind = "policy"
+        elseif kind == "inspect" then
+            args = { w[3] or "", w[4] or "", w[5] or "" }
+        elseif kind == "add" then
+            args = { w[3] or "", w[4] or "", w[5] or "" }
+        elseif kind == "remove" then
+            args = { w[3] or "", w[4] or "" }
+        end
+        if
+            kind == "pair"
+            or kind == "sync"
+            or kind == "policy"
+            or kind == "inspect"
+            or kind == "add"
+            or kind == "remove"
+        then
+            local item, reason = ns.TransportRequest(t, w[2], kind, args, 60)
+            result = item
+                    and ("Pending " .. item.operation .. "; delivery deadline " .. item.deadline)
+                or reason
+        end
+    end
+    d.message = result
+    return result
+end
+
+---@param d GuardianDashboard
+---@return string
+function ns.DashboardText(d)
+    local p, t = d.profile, d.transport
+    local lines = {
+        "Guardian — " .. p.role .. "; supervision: " .. p.supervision,
+        t and "Transport connected to an injected endpoint. Chat enforcement pending Phase 5."
+            or "Live transport gated: identity and routing require two-account verification.",
+        "Monitoring loss does not revoke the saved policy. Enforcement itself remains unverified.",
+        d.message,
+    }
+    if t and t.family.pending then
+        lines[#lines + 1] = "Pair confirmation: "
+            .. t.family.pending.peer
+            .. " "
+            .. t.family.pending.operation
+    end
+    for peer in pairs(p.guardians) do
+        lines[#lines + 1] = "Guardian: " .. peer
+    end
+    for peer in pairs(p.children) do
+        local child = p.childProfiles[peer]
+        local status, last = "unreachable", nil
+        if t then
+            status, last = ns.TransportPresence(t, peer)
+        end
+        lines[#lines + 1] = "Child "
+            .. peer
+            .. ": "
+            .. status
+            .. "; last contact "
+            .. tostring(last or "never")
+            .. "; revision "
+            .. tostring(child and child.revision or "unknown")
+        if child then
+            for member in pairs(child.members or {}) do
+                lines[#lines + 1] = "  Guardian: " .. member
+            end
+            for key, setting in pairs(child.settings or {}) do
+                lines[#lines + 1] = "  "
+                    .. key
+                    .. ": "
+                    .. setting.mode
+                    .. "; revision "
+                    .. setting.revision
+            end
+        end
+    end
+    if p.role == "child" then
+        for _, channel in ipairs({ "party", "whisper" }) do
+            for _, direction in ipairs({ "read", "send" }) do
+                local allowed, reason = ns.Evaluate(
+                    p,
+                    channel,
+                    direction,
+                    nil,
+                    { now = d.now(), sessionId = p.sessionId or "missing", accounts = {} }
+                )
+                lines[#lines + 1] = channel
+                    .. " "
+                    .. direction
+                    .. ": "
+                    .. tostring(allowed)
+                    .. " "
+                    .. reason
+            end
+        end
+        for key, grant in pairs(p.policy.whispers) do
+            local active = ns.GrantActive(
+                grant,
+                { now = d.now(), sessionId = p.sessionId or "missing", accounts = {} }
+            )
+            lines[#lines + 1] = key
+                .. ": "
+                .. tostring(active)
+                .. " "
+                .. grant.mode
+                .. " (read/send)"
+        end
+    end
+    if t then
+        for i = math.max(1, #t.work - 10), #t.work do
+            local item = t.work[i]
+            if not item.reply then
+                lines[#lines + 1] = item.peer
+                    .. " "
+                    .. item.operation
+                    .. ": "
+                    .. item.state
+                    .. "; "
+                    .. item.result
+                    .. "; deadline "
+                    .. item.deadline
+                    .. "; applied order "
+                    .. tostring(item.revision or "unknown")
+            end
+        end
+    end
+    return table.concat(lines, "\n")
+end
+
+-- Button actions keep input fields separate; spaces in realm names are never
+-- reinterpreted as command delimiters. Destructive confirmations capture args.
+---@param d GuardianDashboard
+---@param kind string
+---@param args string[]
+---@return string
+function ns.DashboardAction(d, kind, args)
+    if kind == "role" then
+        return ns.DashboardCommand(d, "role " .. (args[1] or ""))
+    end
+    local t = d.transport
+    local result = "Live connection unavailable. Use the single-session demo."
+    if t then
+        if kind == "invite" then
+            result = ns.FamilyInvite(t.family, args[1], args[2] or "", d.now())
+                    and "Invitation ready for the intended guardian (120 seconds)."
+                or "Invitation rejected. Check role, peer and eight-digit code."
+        elseif kind == "confirm" then
+            local _, reason = ns.FamilyConfirm(
+                t.family,
+                args[1],
+                args[2],
+                args[3] == "confirm",
+                d.now(),
+                t.io.friends()
+            )
+            result = reason
+        elseif kind == "stop" then
+            local _, reason = ns.FamilyReset(t.family, args[1] == "confirm")
+            result = reason
+        elseif args[1] and args[1] ~= "" then
+            local values = {}
+            for i = 2, #args do
+                values[#values + 1] = args[i]
+            end
+            local item, reason = ns.TransportRequest(t, args[1], kind, values, 60)
+            result = item
+                    and ("Pending " .. item.operation .. "; delivery deadline " .. item.deadline)
+                or reason
+        else
+            result = "Enter the intended peer first."
+        end
+    end
+    d.message = result
+    return result
+end
+
+local channels = {
+    { "party", "Party" },
+    { "say", "Say" },
+    { "yell", "Yell" },
+    { "guild", "Guild" },
+    { "raid", "Raid" },
+    { "instance", "Instance" },
+}
+
+---@param d GuardianDashboard
+---@param child? string
+---@param channel string
+---@param direction 'read'|'send'
+---@param target? string
+---@return string, number, number, number
+function ns.DashboardPermission(d, child, channel, direction, target)
+    local t, p = d.transport, d.profile
+    target = target or ""
+    if channel == "whisper-character" then
+        target = ns.CharacterKey(target) or target
+    end
+    if t and child and p.role == "guardian" then
+        local latest
+        for _, item in ipairs(t.work) do
+            if
+                not item.reply
+                and item.peer == child
+                and item.kind == "policy"
+                and (item.state == "pending" or item.state == "delivered")
+            then
+                local fields = ns.DecodeMessage(item.wire)
+                local requestedTarget = fields and fields[11]
+                if fields and fields[6] == "whisper-character" then
+                    requestedTarget = ns.CharacterKey(requestedTarget)
+                end
+                if
+                    fields
+                    and fields[6] == channel
+                    and (fields[7] == direction or channel:find("^whisper%-"))
+                    and requestedTarget == target
+                    and (not latest or tonumber(item.sequence) > tonumber(latest.sequence))
+                then
+                    latest = item
+                end
+            end
+        end
+        if latest then
+            return latest.state == "delivered" and "Delivered" or "Pending", 1, 0.76, 0.25
+        end
+        local view = p.childProfiles[child]
+        local setting = view
+            and view.settings
+            and view.settings[channel .. "/" .. direction .. "/" .. target]
+        -- Whisper grants are bidirectional even when inspected using send.
+        if not setting and view and view.settings and channel:find("^whisper%-") then
+            setting = view.settings[channel .. "/read/" .. target]
+                or view.settings[channel .. "/send/" .. target]
+        end
+        if setting then
+            if setting.mode == "session" then
+                return "Until logout", 0.7, 0.8, 1
+            end
+            if
+                setting.mode == "indefinite"
+                or (
+                    setting.mode == "duration"
+                    and setting.expiresAt
+                    and setting.expiresAt > d.now()
+                )
+            then
+                return "Allowed", 0.35, 0.9, 0.65
+            end
+            return "Blocked", 1, 0.5, 0.45
+        end
+        if
+            view
+            and view.settings
+            and t.completedSnapshots[child] == view.generation .. "/" .. tostring(view.revision)
+        then
+            return "Blocked", 1, 0.5, 0.45
+        end
+        return "Unknown", 0.7, 0.75, 0.8
+    end
+    if p.role == "child" then
+        local context = { now = d.now(), sessionId = p.sessionId or "missing", accounts = {} }
+        local allowed
+        if channel:find("^whisper%-") then
+            local grant = p.policy.whispers[channel .. ":" .. target]
+            allowed = p.supervision == "unpaired"
+                or (p.supervision == "paired" and ns.GrantActive(grant, context))
+        else
+            allowed = ns.Evaluate(p, channel, direction, nil, context)
+        end
+        if allowed then
+            return "Allowed", 0.35, 0.9, 0.65
+        end
+        return "Blocked", 1, 0.5, 0.45
+    end
+    return "Unknown", 0.7, 0.75, 0.8
+end
+
+local function plain(value)
+    return tostring(value):gsub("|", "||")
+end
+
+-- Lazy construction keeps widgets out of loading/SavedVariables setup. One
+-- window is retained per model; hidden frames do not run OnUpdate in WoW.
+---@param d GuardianDashboard
+function ns.ShowDashboard(d)
+    if d.window then
+        d.window:Show()
+        return
+    end
+    local frame = CreateFrame("Frame", nil, UIParent)
+    d.window = frame
+    frame:SetSize(960, 710)
+    frame:SetPoint("CENTER")
+    frame:SetFrameStrata("DIALOG")
+    local function background(parent, r, g, b)
+        local texture = parent:CreateTexture(nil, "BACKGROUND")
+        texture:SetAllPoints()
+        texture:SetColorTexture(r, g, b, 0.98)
+    end
+    local function label(parent, x, y, width, value, font)
+        local text = parent:CreateFontString(nil, "OVERLAY", font or "GameFontHighlight")
+        text:SetPoint("TOPLEFT", x, -y)
+        text:SetWidth(width)
+        text:SetJustifyH("LEFT")
+        text:SetText(plain(value))
+        return text
+    end
+    local refresh = function() end
+    local function button(parent, x, y, width, caption, callback)
+        local control = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+        control:SetSize(width, 24)
+        control:SetPoint("TOPLEFT", x, -y)
+        control:SetText(plain(caption))
+        control:SetScript("OnClick", function()
+            callback()
+            refresh()
+        end)
+        return control
+    end
+    local function input(parent, x, y, width)
+        local control = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
+        control:SetSize(width, 26)
+        control:SetPoint("TOPLEFT", x, -y)
+        control:SetAutoFocus(false)
+        control:SetMaxLetters(128)
+        control:SetScript("OnEscapePressed", function(self)
+            self:ClearFocus()
+        end)
+        control:SetScript("OnEnterPressed", function(self)
+            self:ClearFocus()
+            refresh()
+        end)
+        control:SetScript("OnTextChanged", function()
+            refresh()
+        end)
+        return control
+    end
+    local function panel(x, y, width, height)
+        local child = CreateFrame("Frame", nil, frame)
+        child:SetPoint("TOPLEFT", x, -y)
+        child:SetSize(width, height)
+        background(child, 0.055, 0.075, 0.105)
+        return child
+    end
+    background(frame, 0.025, 0.035, 0.055)
+    label(frame, 20, 18, 150, "GUARDIAN", "GameFontNormal")
+    local identity = label(frame, 180, 18, 650, "")
+    button(frame, 866, 12, 74, "Close", function()
+        frame:Hide()
+    end)
+    local banner = label(frame, 20, 48, 920, "", "GameFontHighlightSmall")
+    local roleGuardian = button(frame, 20, 82, 145, "Guardian role", function()
+        ns.DashboardAction(d, "role", { "guardian" })
+    end)
+    local roleChild = button(frame, 174, 82, 125, "Child role", function()
+        ns.DashboardAction(d, "role", { "child" })
+    end)
+    local syncSelected = button(frame, 320, 82, 170, "Sync selected child", function()
+        ns.DashboardAction(d, "sync", { d.selectedChild or "" })
+    end)
+    local demo = button(frame, 720, 82, 220, "Single-session demo", function()
+        frame:Hide()
+        if ns.ShowNetworkDemo then
+            ns.ShowNetworkDemo()
+        end
+    end)
+    local sidebar = panel(16, 124, 192, 488)
+    label(sidebar, 12, 12, 170, "CHILDREN", "GameFontNormal")
+    local empty = label(
+        sidebar,
+        12,
+        46,
+        170,
+        "No children paired yet.\nOpen Family to pair a child.",
+        "GameFontHighlightSmall"
+    )
+    local childButtons = {}
+    for i = 1, 16 do
+        local row = { peer = "" }
+        row.control = button(sidebar, 8, 40 + (i - 1) * 27, 176, "", function()
+            d.selectedChild = row.peer
+        end)
+        childButtons[i] = row
+    end
+    local tab = d.profile.role == "guardian" and next(d.profile.children) and "permissions"
+        or "family"
+    local pendingAction
+    local function confirmAction(caption, kind, args)
+        local child = (kind == "add" or kind == "remove") and d.profile.childProfiles[args[1]]
+        pendingAction = {
+            caption = caption,
+            kind = kind,
+            args = args,
+            generation = child and child.generation or d.profile.generation,
+        }
+    end
+    local tabs = {}
+    for i, spec in ipairs({
+        { "permissions", "Permissions" },
+        { "family", "Family & pairing" },
+        { "activity", "Activity" },
+    }) do
+        local key = spec[1]
+        tabs[key] = button(frame, 224 + (i - 1) * 240, 124, 230, spec[2], function()
+            tab = key
+        end)
+    end
+    local permissions, family, activity =
+        panel(224, 162, 716, 450), panel(224, 162, 716, 450), panel(224, 162, 716, 450)
+    local selection = label(permissions, 14, 12, 680, "", "GameFontNormal")
+    label(permissions, 150, 42, 190, "READ incoming", "GameFontHighlightSmall")
+    label(permissions, 410, 42, 260, "SEND outgoing", "GameFontHighlightSmall")
+    local rows = {}
+    for i, spec in ipairs(channels) do
+        local channel = spec[1]
+        local y = 68 + (i - 1) * 40
+        label(permissions, 14, y + 5, 120, spec[2])
+        for j, direction in ipairs({ "read", "send" }) do
+            local x = 150 + (j - 1) * 260
+            local state = label(permissions, x, y + 5, 85, "Unknown", "GameFontHighlightSmall")
+            local buttons = {}
+            for k, verb in ipairs({ "Allow", "Block" }) do
+                local mode = k == 1 and "indefinite" or "revoke"
+                buttons[k] = button(permissions, x + 88 + (k - 1) * 59, y, 56, verb, function()
+                    ns.DashboardAction(
+                        d,
+                        "policy",
+                        { d.selectedChild or "", channel, direction, mode, "", "", "" }
+                    )
+                end)
+            end
+            rows[#rows + 1] =
+                { channel = channel, direction = direction, state = state, buttons = buttons }
+        end
+    end
+    label(
+        permissions,
+        14,
+        316,
+        680,
+        "WHISPERS · permission applies to both read and send",
+        "GameFontNormal"
+    )
+    label(
+        permissions,
+        14,
+        343,
+        260,
+        "Character-Realm or verified BattleTag",
+        "GameFontHighlightSmall"
+    )
+    local whisperTarget = input(permissions, 18, 365, 245)
+    local whisperKind = "whisper-character"
+    local characterButton = button(permissions, 280, 366, 100, "Character", function()
+        whisperKind = "whisper-character"
+    end)
+    local accountButton = button(permissions, 386, 366, 100, "Account", function()
+        whisperKind = "whisper-account"
+    end)
+    local whisperButtons = {}
+    for i, verb in ipairs({ "Allow", "Block" }) do
+        local mode = i == 1 and "indefinite" or "revoke"
+        whisperButtons[i] = button(permissions, 506 + (i - 1) * 90, 366, 84, verb, function()
+            ns.DashboardAction(d, "policy", {
+                d.selectedChild or "",
+                whisperKind,
+                "read",
+                mode,
+                "",
+                "",
+                whisperTarget:GetText(),
+            })
+        end)
+    end
+    local whisperState =
+        label(permissions, 14, 406, 680, "Enter a whisper target.", "GameFontHighlightSmall")
+    local familyTitle = label(family, 14, 14, 680, "", "GameFontNormal")
+    label(family, 14, 45, 280, "Intended peer / child account", "GameFontHighlightSmall")
+    label(family, 332, 45, 175, "Eight-digit pairing code", "GameFontHighlightSmall")
+    local peerInput, codeInput = input(family, 18, 66, 288), input(family, 336, 66, 166)
+    local inviteButton = button(family, 520, 67, 180, "Create invitation", function()
+        ns.DashboardAction(d, "invite", { peerInput:GetText(), codeInput:GetText() })
+    end)
+    local pairButton = button(family, 520, 67, 180, "Request pairing", function()
+        ns.DashboardAction(d, "pair", { peerInput:GetText(), codeInput:GetText() })
+    end)
+    local pendingText = label(family, 14, 108, 680, "", "GameFontHighlightSmall")
+    local confirmPair = button(family, 14, 143, 210, "Confirm this guardian", function()
+        local pending = d.transport and d.transport.family.pending
+        if pending then
+            confirmAction(
+                "Pair with " .. pending.peer .. " (" .. pending.operation .. ")?",
+                "confirm",
+                { pending.peer, pending.operation, "confirm" }
+            )
+        end
+    end)
+    local syncPeer = button(family, 250, 143, 180, "Sync child", function()
+        local peer = peerInput:GetText()
+        ns.DashboardAction(d, "sync", { peer ~= "" and peer or d.selectedChild or "" })
+    end)
+    label(
+        family,
+        14,
+        180,
+        680,
+        "Additional guardian: enter their peer above and exact pending operation below.",
+        "GameFontHighlightSmall"
+    )
+    local operationInput = input(family, 18, 204, 350)
+    local addButton = button(family, 394, 205, 190, "Approve guardian", function()
+        confirmAction(
+            "Add " .. peerInput:GetText() .. " to " .. (d.selectedChild or "no child") .. "?",
+            "add",
+            { d.selectedChild or "", peerInput:GetText(), operationInput:GetText(), "confirm" }
+        )
+    end)
+    label(family, 14, 245, 680, "CURRENT GUARDIANS", "GameFontNormal")
+    local memberRows = {}
+    for i = 1, 8 do
+        local row = { peer = "" }
+        row.text = label(family, 14, 272 + (i - 1) * 19, 520, "", "GameFontHighlightSmall")
+        row.remove = button(family, 560, 267 + (i - 1) * 20, 140, "Remove guardian", function()
+            local child = d.profile.childProfiles[d.selectedChild or ""]
+            local count = 0
+            for _ in pairs(child and child.members or {}) do
+                count = count + 1
+            end
+            local last = count == 1
+            confirmAction(
+                (last and "Stop supervision of " or "Remove " .. row.peer .. " from ")
+                    .. (d.selectedChild or "no child")
+                    .. "?",
+                "remove",
+                { d.selectedChild or "", row.peer, last and "stop" or "confirm" }
+            )
+        end)
+        memberRows[i] = row
+    end
+    local stopButton = button(family, 14, 420, 240, "Stop supervision / recover", function()
+        confirmAction(
+            "Stop supervision locally and clear guardians and permissions?",
+            "stop",
+            { "confirm" }
+        )
+    end)
+    local scroll = CreateFrame("ScrollFrame", nil, activity, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", 14, -14)
+    scroll:SetSize(666, 422)
+    local body = CreateFrame("Frame", nil, scroll)
+    body:SetSize(656, 422)
+    scroll:SetScrollChild(body)
+    local activityText = label(body, 0, 0, 646, "", "GameFontHighlightSmall")
+    local confirmation = label(frame, 20, 627, 640, "", "GameFontNormal")
+    local confirmButton = button(frame, 688, 621, 120, "Confirm action", function()
+        local action = pendingAction
+        pendingAction = nil
+        if action then
+            local child = (action.kind == "add" or action.kind == "remove")
+                and d.profile.childProfiles[action.args[1]]
+            local generation = child and child.generation or d.profile.generation
+            if generation ~= action.generation then
+                d.message =
+                    "Family membership changed. Review the current family and confirm again."
+            else
+                ns.DashboardAction(d, action.kind, action.args)
+            end
+        end
+    end)
+    local cancelButton = button(frame, 818, 621, 120, "Cancel", function()
+        pendingAction = nil
+    end)
+    local message = label(frame, 20, 664, 920, "", "GameFontHighlightSmall")
+    local demoButtons = {}
+    if d.demo then
+        for i, id in ipairs({ "parent", "child", "parent2", "child2" }) do
+            demoButtons[i] = button(frame, 20 + (i - 1) * 112, 621, 106, id, function()
+                frame:Hide()
+                ns.ShowDashboard(d.demo.dashboards[id])
+            end)
+        end
+        demoButtons[5] = button(frame, 478, 621, 150, "Toggle child link", function()
+            local endpoint = d.demo.sim.endpoints[d.selectedChild or "child"]
+            if endpoint then
+                endpoint.online = not endpoint.online
+            end
+        end)
+        demoButtons[6] = button(frame, 638, 621, 145, "Toggle packet loss", function()
+            d.demo.sim.loss = not d.demo.sim.loss
+        end)
+        demoButtons[7] = button(frame, 794, 621, 145, "Advance 65 sec", function()
+            ns.NetworkAdvance(d.demo, 65)
+        end)
+    end
+    refresh = function()
+        local p, t = d.profile, d.transport
+        local children = {}
+        for child in pairs(p.children) do
+            children[#children + 1] = child
+        end
+        table.sort(children)
+        if d.selectedChild and not p.children[d.selectedChild] then
+            d.selectedChild = nil
+        end
+        if not d.selectedChild then
+            d.selectedChild = children[1]
+        end
+        local view = d.selectedChild and p.childProfiles[d.selectedChild]
+        local canEdit = t ~= nil
+            and p.role == "guardian"
+            and view ~= nil
+            and view.members ~= nil
+            and view.members[t.family.id] == true
+        local mutableRole = p.supervision == "unpaired"
+            and not next(p.children)
+            and not next(p.guardians)
+        identity:SetText(
+            plain(
+                (d.demo and "SIMULATION · " .. (t and t.family.id or "") .. " · " or "")
+                    .. p.role
+                    .. " · "
+                    .. p.supervision
+            )
+        )
+        banner:SetText(
+            d.demo
+                    and ("Single-session fixtures · saved live profiles untouched · loss " .. (d.demo.sim.loss and "ON" or "off") .. " · simulation time " .. math.floor(
+                        d.demo.sim.now
+                    ))
+                or "Live account identity and routing await verification. Chat enforcement is pending Phase 5."
+        )
+        roleGuardian:SetEnabled(mutableRole and p.role ~= "guardian")
+        roleChild:SetEnabled(mutableRole and p.role ~= "child")
+        demo:SetEnabled(ns.ShowNetworkDemo ~= nil)
+        syncSelected:SetEnabled(t ~= nil and p.role == "guardian" and d.selectedChild ~= nil)
+        syncPeer:SetEnabled(
+            t ~= nil
+                and p.role == "guardian"
+                and (ns.ValidIdentifier(peerInput:GetText()) or d.selectedChild ~= nil)
+        )
+        if #children == 0 then
+            empty:Show()
+        else
+            empty:Hide()
+        end
+        if p.role == "child" then
+            empty:SetText("Your saved permissions appear here. Family shows your guardians.")
+        end
+        for i, row in ipairs(childButtons) do
+            local child = children[i]
+            if child then
+                row.peer = child
+                local status = t and ns.TransportPresence(t, child) or "unreachable"
+                row.control:SetText(
+                    plain((d.selectedChild == child and "> " or "") .. child .. " · " .. status)
+                )
+                row.control:Show()
+            else
+                row.control:Hide()
+            end
+        end
+        for name, control in pairs(tabs) do
+            control:SetEnabled(tab ~= name)
+        end
+        if tab == "permissions" then
+            permissions:Show()
+        else
+            permissions:Hide()
+        end
+        if tab == "family" then
+            family:Show()
+        else
+            family:Hide()
+        end
+        if tab == "activity" then
+            activity:Show()
+        else
+            activity:Hide()
+        end
+        local summary = p.role == "child" and "Your effective saved permissions"
+            or (
+                d.selectedChild
+                    and (d.selectedChild .. " · last known policy revision " .. tostring(
+                        view and view.revision or "unknown"
+                    ))
+                or "Select a child, or pair one in Family"
+            )
+        selection:SetText(plain(summary))
+        for _, row in ipairs(rows) do
+            local value, r, g, b =
+                ns.DashboardPermission(d, d.selectedChild, row.channel, row.direction)
+            row.state:SetText(value)
+            row.state:SetTextColor(r, g, b)
+            for _, control in ipairs(row.buttons) do
+                control:SetEnabled(canEdit)
+            end
+        end
+        characterButton:SetEnabled(whisperKind ~= "whisper-character")
+        accountButton:SetEnabled(whisperKind ~= "whisper-account")
+        local target = whisperTarget:GetText()
+        local validTarget = whisperKind == "whisper-character" and ns.CharacterKey(target) ~= nil
+            or whisperKind == "whisper-account" and ns.ValidIdentifier(target)
+        for _, control in ipairs(whisperButtons) do
+            control:SetEnabled(canEdit and validTarget)
+        end
+        if target ~= "" then
+            local value, r, g, b =
+                ns.DashboardPermission(d, d.selectedChild, whisperKind, "read", target)
+            whisperState:SetText(
+                "Read & send: " .. value .. " · party access never grants whispers."
+            )
+            whisperState:SetTextColor(r, g, b)
+        else
+            whisperState:SetText("Enter a target to review or change bidirectional whisper access.")
+        end
+        familyTitle:SetText(
+            p.role == "child" and "Pair with an intended guardian"
+                or "Pair a child / manage selected child's guardians"
+        )
+        if p.role == "child" then
+            inviteButton:Show()
+            pairButton:Hide()
+        else
+            inviteButton:Hide()
+            pairButton:Show()
+        end
+        local peer, code = peerInput:GetText(), codeInput:GetText()
+        local ready = t ~= nil
+            and ns.ValidIdentifier(peer)
+            and code:match("^%d%d%d%d%d%d%d%d$") ~= nil
+        inviteButton:SetEnabled(ready and p.role == "child" and p.supervision ~= "recovery")
+        pairButton:SetEnabled(ready and p.role == "guardian")
+        local pending = t and t.family.pending
+        pendingText:SetText(
+            plain(
+                pending
+                        and ("Pending peer: " .. pending.peer .. " · operation: " .. pending.operation)
+                    or "No pending pairing confirmation. Invitations expire after 120 seconds."
+            )
+        )
+        confirmPair:SetEnabled(
+            pending ~= nil
+                and p.role == "child"
+                and p.supervision == "unpaired"
+                and d.now() < pending.expires
+        )
+        addButton:SetEnabled(
+            canEdit and ns.ValidIdentifier(peer) and ns.ValidIdentifier(operationInput:GetText())
+        )
+        local members, names =
+            p.role == "child" and p.guardians or (view and view.members or {}), {}
+        for member in pairs(members) do
+            names[#names + 1] = member
+        end
+        table.sort(names)
+        for i, row in ipairs(memberRows) do
+            local member = names[i]
+            if member then
+                row.peer = member
+                row.text:SetText(plain(member))
+                row.text:Show()
+                if p.role == "guardian" then
+                    row.remove:Show()
+                else
+                    row.remove:Hide()
+                end
+                row.remove:SetEnabled(canEdit)
+            else
+                row.text:Hide()
+                row.remove:Hide()
+            end
+        end
+        if p.role == "child" then
+            stopButton:Show()
+        else
+            stopButton:Hide()
+        end
+        stopButton:SetEnabled(t ~= nil and p.supervision ~= "unpaired")
+        activityText:SetText(plain(ns.DashboardText(d)))
+        body:SetHeight(math.max(422, activityText:GetStringHeight() + 10))
+        message:SetText(plain(d.message))
+        if pendingAction then
+            confirmation:SetText(plain(pendingAction.caption))
+            confirmation:Show()
+            confirmButton:Show()
+            cancelButton:Show()
+            for _, control in ipairs(demoButtons) do
+                control:Hide()
+            end
+        else
+            confirmation:Hide()
+            confirmButton:Hide()
+            cancelButton:Hide()
+            for _, control in ipairs(demoButtons) do
+                control:Show()
+            end
+        end
+    end
+    local elapsed = 0
+    frame:SetScript("OnUpdate", function(_, delta)
+        elapsed = elapsed + delta
+        if elapsed >= 0.5 then
+            elapsed = 0
+            refresh()
+        end
+    end)
+    frame:SetScript("OnShow", refresh)
+    refresh()
+    frame:Show()
+end
