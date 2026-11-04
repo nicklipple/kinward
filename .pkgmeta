@@ -1,0 +1,19 @@
+package-as: Guardian
+ignore:
+  - .github
+  - .gitignore
+  - .luarc.json
+  - .stylua.toml
+  - .tools
+  - .reports
+  - dist
+  - tests
+  - types
+  - reference
+  - scripts
+  - AGENTS.md
+  - ARCHITECTURE.md
+  - README.md
+  - REQUIREMENTS.md
+  - IMPLEMENTATION_PLAN.md
+  - Makefile

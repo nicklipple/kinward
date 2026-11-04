@@ -1,0 +1,65 @@
+{
+  "runtime.version": "Lua 5.1",
+  "runtime.builtin": {
+    "basic": "disable",
+    "bit": "disable",
+    "math": "disable",
+    "os": "disable",
+    "string": "disable",
+    "table": "disable",
+    "io": "disable",
+    "package": "disable",
+    "debug": "disable",
+    "coroutine": "disable",
+    "utf8": "disable"
+  },
+  "workspace.library": [
+    "types/wow/Annotations/Core/Lua",
+    "types/wow/Annotations/Core/Type",
+    "types/wow/Annotations/Core/Widget",
+    "types/wow/Annotations/Core/ScriptObject",
+    "types/wow/Annotations/Core/Blizzard_APIDocumentationGenerated",
+    "types/wow/Annotations/Core/FrameXML",
+    "types/wow/Annotations/Core/Libraries",
+    "types/wow/Annotations/Core/Data/Wiki.lua",
+    "types/wow/Annotations/Core/Data/Event.lua",
+    "types/wow/Annotations/Core/Data/Enum.lua",
+    "types/wow/Annotations/Core/Data/CVar.lua",
+    "types/wow/Annotations/FrameXML/Annotations/AddOns/Blizzard_ChatFrameBase/Shared/SlashCommandsRegistry.lua.annotated.lua",
+    "types/addon.lua",
+    "types/forever"
+  ],
+  "workspace.checkThirdParty": false,
+  "workspace.ignoreDir": [
+    ".tools",
+    ".reports",
+    "reference",
+    "dist",
+    "tests",
+    "scripts",
+    ".git",
+    "types"
+  ],
+  "diagnostics.libraryFiles": "Disable",
+  "diagnostics.globals": [],
+  "diagnostics.enable": true,
+  "diagnostics.neededFileStatus": {
+    "global-element": "Any"
+  },
+  "diagnostics.severity": {
+    "undefined-global": "Error",
+    "undefined-field": "Error",
+    "inject-field": "Error",
+    "param-type-mismatch": "Error",
+    "return-type-mismatch": "Error",
+    "assign-type-mismatch": "Error",
+    "missing-parameter": "Error",
+    "redundant-parameter": "Error",
+    "unused-local": "Warning",
+    "global-in-nil-env": "Error",
+    "lowercase-global": "Warning",
+    "global-element": "Warning"
+  },
+  "diagnostics.disable": [],
+  "telemetry.enable": false
+}

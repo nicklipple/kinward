@@ -1,0 +1,7 @@
+/.tools/
+/.reports/
+/dist/
+/types/wow/*
+!/types/wow/README.md
+/reference/blizzard-ui/
+__pycache__/
