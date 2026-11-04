@@ -1,0 +1,77 @@
+name: Kinward release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to release (for example v0.1.0-alpha1)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - name: Validate version tag
+        shell: bash
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?$ ]]; then
+            echo "Expected a version tag such as v0.1.0 or v0.1.0-alpha1." >&2
+            exit 1
+          fi
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set packaged addon version from tag
+        shell: python
+        run: |
+          import os
+          import re
+          from pathlib import Path
+          toc = Path('Kinward.toc')
+          version = os.environ['RELEASE_TAG'][1:]
+          content, count = re.subn(r'^## Version: .+$', '## Version: ' + version,
+                                   toc.read_text(), flags=re.MULTILINE)
+          if count != 1:
+              raise SystemExit('Expected exactly one TOC version field.')
+          toc.write_text(content)
+      - name: Bootstrap pinned development dependencies
+        run: make bootstrap
+      - name: Check and package installable addon
+        run: make package
+      - name: Publish GitHub Release with addon ZIP
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          archive="dist/Kinward-${RELEASE_TAG#v}.zip"
+          test -f "$archive"
+          flags=()
+          if [[ "$RELEASE_TAG" == *-* ]]; then
+            flags+=(--prerelease --latest=false)
+          else
+            flags+=(--latest)
+          fi
+          gh release create "$RELEASE_TAG" "$archive" \
+            --verify-tag \
+            --title "Kinward $RELEASE_TAG" \
+            --generate-notes \
+            "${flags[@]}"

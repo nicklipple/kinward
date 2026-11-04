@@ -138,3 +138,24 @@ client discovers `Kinward/Kinward.toc`.
 Kinward uses its own `KinwardDB` saved variable and `Kinward4` addon-message
 prefix. It starts with fresh settings; existing Guardian save files are left
 untouched. The guardian/child role names and permission semantics are unchanged.
+
+## GitHub Releases
+
+Push a version tag such as `v0.1.0-alpha2` after the release workflow has reached
+GitHub. The **Kinward release** action bootstraps pinned tools, runs the package
+checks, and publishes a GitHub Release with the installable
+`Kinward-0.1.0-alpha2.zip` attached. It stamps the packaged TOC version from the
+tag without changing the committed source version. Tags with a prerelease
+suffix (including alpha, beta and rc) become GitHub prereleases; plain version
+tags become normal releases. The workflow uses GitHub's built-in token and needs
+no additional secret.
+
+For an existing tag created before the workflow was added, open **Actions →
+Kinward release → Run workflow**, select `main`, and enter the existing tag
+(for example `v0.1.0-alpha1`). The build checks out that exact tag. A tag must
+exist remotely; the action never creates or moves tags. Creating a release that
+already exists fails rather than replacing published files.
+
+Download the attached `Kinward-*.zip` to install the addon. GitHub's automatic
+**Source code** archives contain the repository and are intended for development.
+CurseForge packaging continues separately through its repository webhook.
