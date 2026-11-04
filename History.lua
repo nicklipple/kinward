@@ -1,5 +1,5 @@
 local _, ns = ...
----@cast ns GuardianNamespace
+---@cast ns KinwardNamespace
 
 local dispositions = {
     allowed = true,
@@ -20,7 +20,7 @@ local function limits(retention, count)
 end
 
 ---@param generation string
----@return GuardianHistory
+---@return KinwardHistory
 function ns.NewHistory(generation)
     return {
         generation = generation,
@@ -106,7 +106,7 @@ function ns.ValidHistory(h, generation)
     return count <= h.maxRecords
 end
 
----@param h GuardianHistory
+---@param h KinwardHistory
 ---@param now number
 function ns.PruneHistory(h, now)
     local keep, lastExpired = {}, 0
@@ -139,7 +139,7 @@ function ns.PruneHistory(h, now)
     h.records = keep
 end
 
----@param profile GuardianSettings
+---@param profile KinwardSettings
 function ns.HistoryRelationshipChanged(profile)
     if profile.supervision == "paired" and profile.history then
         profile.history.generation = profile.generation
@@ -148,7 +148,7 @@ function ns.HistoryRelationshipChanged(profile)
     end
 end
 
----@param profile GuardianSettings
+---@param profile KinwardSettings
 ---@param retention number
 ---@param count number
 ---@param now number
@@ -164,15 +164,15 @@ function ns.ConfigureHistory(profile, retention, count, now)
 end
 
 ---The caller supplies only accessible strings. No child UI or debug caller reads records.
----@param profile GuardianSettings
+---@param profile KinwardSettings
 ---@param now number
 ---@param direction 'read'|'send'|'system'
 ---@param channel string
----@param identity GuardianIdentity?
+---@param identity KinwardIdentity?
 ---@param disposition string
 ---@param body string
 ---@param endedAt? number
----@return GuardianHistoryRecord?
+---@return KinwardHistoryRecord?
 function ns.AppendHistory(profile, now, direction, channel, identity, disposition, body, endedAt)
     if profile.supervision ~= "paired" or profile.role ~= "child" then
         return nil
@@ -218,7 +218,7 @@ local function unhex(text)
     end))
 end
 
----@param profile GuardianSettings
+---@param profile KinwardSettings
 ---@param fields string[]
 ---@param now number
 ---@return string?
@@ -287,10 +287,10 @@ function ns.HistoryBatch(profile, fields, now)
     return ns.EncodeMessage(values)
 end
 
----@param t GuardianTransport
+---@param t KinwardTransport
 ---@param peer string
 ---@param fields string[]
----@param item GuardianDelivery
+---@param item KinwardDelivery
 ---@return boolean
 function ns.AcceptHistoryBatch(t, peer, fields, item)
     local p = t.family.profile
@@ -387,7 +387,7 @@ function ns.AcceptHistoryBatch(t, peer, fields, item)
     return true
 end
 
----@param t GuardianTransport
+---@param t KinwardTransport
 ---@param peer string
 ---@return boolean
 function ns.WatchHistory(t, peer)
@@ -406,7 +406,7 @@ function ns.WatchHistory(t, peer)
     return true
 end
 
----@param t GuardianTransport
+---@param t KinwardTransport
 function ns.PollHistory(t)
     local now = t.io.now()
     if now < (t.nextHistoryPoll or 0) then
@@ -442,11 +442,11 @@ function ns.PollHistory(t)
     end
 end
 
----@param profile GuardianSettings
+---@param profile KinwardSettings
 ---@param peer string
----@param filters GuardianHistoryFilters
+---@param filters KinwardHistoryFilters
 ---@param now number
----@return GuardianHistoryRecord[]
+---@return KinwardHistoryRecord[]
 function ns.HistoryView(profile, peer, filters, now)
     local child = profile.role == "guardian"
         and profile.children[peer]
@@ -484,7 +484,7 @@ function ns.HistoryView(profile, peer, filters, now)
     return rows
 end
 
----@param profile GuardianSettings
+---@param profile KinwardSettings
 ---@param now number
 function ns.PruneProfileHistory(profile, now)
     if profile.history then

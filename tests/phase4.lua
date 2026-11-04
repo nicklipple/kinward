@@ -19,7 +19,7 @@ setmetatable(env, {
         error("Unexpected global read: " .. key)
     end,
     __newindex = function(t, key, value)
-        assert(key == "SLASH_GUARDIANSIM1", "Unexpected global write: " .. key)
+        assert(key == "SLASH_KINWARDSIM1", "Unexpected global write: " .. key)
         rawset(t, key, value)
     end,
 })
@@ -41,7 +41,7 @@ for _, file in ipairs({
     "Chat.lua",
     "scripts/probes/Phase2Simulator.lua",
 }) do
-    setfenv(assert(loadfile(file)), env)("Guardian", ns)
+    setfenv(assert(loadfile(file)), env)("Kinward", ns)
 end
 local passed = 0
 local function test(name, body)
@@ -362,7 +362,7 @@ end)
 test("command harness remains isolated and child effective view respects expiry", function()
     local live = { marker = true }
     ns.settings = live
-    local c = commands.GUARDIANSIM
+    local c = commands.KINWARDSIM
     c("network-reset")
     c("network child invite parent 12345678")
     c("network parent pair child 12345678")
@@ -420,7 +420,7 @@ test(
             end,
             C_ChatInfo = {
                 RegisterAddonMessagePrefix = function(prefix)
-                    assert(prefix == "Guardian4")
+                    assert(prefix == "Kinward4")
                     return 0
                 end,
                 InChatMessagingLockdown = function()
@@ -447,7 +447,7 @@ test(
                     }
                 end,
                 SendGameData = function(route, prefix, packet)
-                    assert(prefix == "Guardian4")
+                    assert(prefix == "Kinward4")
                     sent[#sent + 1] = { route, packet }
                     return code
                 end,
@@ -462,12 +462,12 @@ test(
         assert(t.io.resolve("parent") == 42)
         gameCount = 2
         assert(not t.io.resolve("parent"))
-        scripts.OnEvent(frame, "BN_CHAT_MSG_ADDON", "Guardian4", "F|p|1|2|x", "", 42)
+        scripts.OnEvent(frame, "BN_CHAT_MSG_ADDON", "Kinward4", "F|p|1|2|x", "", 42)
         assert(next(t.incoming) == nil)
         gameCount = 1
-        scripts.OnEvent(frame, "BN_CHAT_MSG_ADDON", "Guardian4", "F|p|1|2|x", "", 41)
+        scripts.OnEvent(frame, "BN_CHAT_MSG_ADDON", "Kinward4", "F|p|1|2|x", "", 41)
         assert(next(t.incoming) == nil)
-        scripts.OnEvent(frame, "BN_CHAT_MSG_ADDON", "Guardian4", "F|p|1|2|x", "", 42)
+        scripts.OnEvent(frame, "BN_CHAT_MSG_ADDON", "Kinward4", "F|p|1|2|x", "", 42)
         assert(t.incoming["parent/p"])
         scripts.OnEvent(frame, "BN_CHAT_MSG_ADDON", secret, secret, "", secret)
         for _, expected in ipairs({
@@ -545,6 +545,22 @@ local function withWidgets(body)
         end
         function methods:GetStringHeight()
             return 700
+        end
+        function methods:SetupMenu(generator)
+            assert(self.kind == "DropdownButton")
+            local entries = {}
+            local root = {}
+            function root:CreateRadio(caption, isSelected, setSelected)
+                entries[#entries + 1] =
+                    { caption = caption, isSelected = isSelected, setSelected = setSelected }
+            end
+            generator(self, root)
+            self.menu = entries
+            for _, entry in ipairs(entries) do
+                if entry.isSelected() then
+                    self.value = entry.caption
+                end
+            end
         end
         function methods:SetScrollChild(child)
             self.child = child
@@ -677,6 +693,96 @@ test("visual permission buttons show pending then applied and isolate selected c
     end)
 end)
 
+test("public channel controls apply independent read and send grants", function()
+    withWidgets(function(ui)
+        local n = paired()
+        local d = n.dashboards.parent
+        ns.ShowDashboard(d)
+        for _, spec in ipairs({
+            { "channel:general", 240 },
+            { "channel:lookingforgroup", 280 },
+            { "channel:trade", 320 },
+        }) do
+            local found = false
+            for _, control in ipairs(ui.frames) do
+                if
+                    control.kind == "Button"
+                    and control.value == "Allow"
+                    and control.x == 238
+                    and control.y == -spec[2]
+                    and ui.visible(control)
+                then
+                    control.scripts.OnClick(control)
+                    found = true
+                    break
+                end
+            end
+            assert(found)
+            advance(n)
+            assert(ns.DashboardPermission(d, "child", spec[1], "read") == "Allowed")
+            assert(ns.DashboardPermission(d, "child", spec[1], "send") == "Blocked")
+        end
+    end)
+end)
+
+test("whisper contacts are listed, editable, paginated and isolated by child", function()
+    withWidgets(function(ui)
+        local n = paired()
+        pair(n, "child2", "parent")
+        local d = n.dashboards.parent
+        ns.DashboardAction(
+            d,
+            "policy",
+            { "child", "whisper-character", "read", "indefinite", "", "", "Friend-Test Realm" }
+        )
+        advance(n)
+        ns.ShowDashboard(d)
+        ui.click("Whisper contacts")
+        ui.click("friend-testrealm · Character · Allowed")
+        ui.click("Block")
+        assert(
+            ns.DashboardPermission(d, "child", "whisper-character", "read", "friend-testrealm")
+                == "Pending"
+        )
+        advance(n)
+        ui.tick(1)
+        assert(
+            ns.DashboardPermission(d, "child", "whisper-character", "send", "friend-testrealm")
+                == "Blocked"
+        )
+        ui.click("Add whisper contact")
+        ui.click("Account")
+        ui.fill(18, 275, "Friend#1234")
+        ui.click("Allow")
+        ui.click("Friend#1234 · Account · Pending")
+        advance(n)
+        ui.tick(1)
+        assert(
+            ns.DashboardPermission(d, "child", "whisper-account", "read", "Friend#1234")
+                == "Allowed"
+        )
+        -- Exercise a full fetched list with more contacts than fit on one page.
+        local view = d.profile.childProfiles.child
+        for i = 1, 7 do
+            view.settings["whisper-character/read/person" .. i .. "-realm"] =
+                { mode = "indefinite", revision = view.revision }
+        end
+        ui.tick(1)
+        ui.click("Next contacts")
+        assert(ui.find("Previous contacts").enabled)
+        d.selectedChild = "child2"
+        ui.tick(1)
+        assert(not ui.find("Next contacts").enabled)
+        assert(not ui.find("Allow").enabled)
+        for _, control in ipairs(ui.frames) do
+            if ui.visible(control) then
+                assert(not tostring(control.value):find("friend-testrealm", 1, true))
+                assert(not tostring(control.value):find("Friend#1234", 1, true))
+            end
+        end
+    end)
+end)
+
 test("visual membership changes require confirmation bound to the original child", function()
     withWidgets(function(ui)
         local n = paired()
@@ -723,7 +829,7 @@ test("single-session visual demo pairs and edits through buttons without live st
     withWidgets(function(ui)
         local live = { marker = true }
         ns.settings = live
-        commands.GUARDIANSIM("network-reset")
+        commands.KINWARDSIM("network-reset")
         ns.ShowNetworkDemo()
         ui.click("child")
         ui.fill(18, 26, "parent")
@@ -736,16 +842,16 @@ test("single-session visual demo pairs and edits through buttons without live st
         ui.click("Permissions")
         ui.click("Allow")
         ui.tick(5)
-        commands.GUARDIANSIM("network-status child")
+        commands.KINWARDSIM("network-status child")
         assert(output[#output]:find("party read: true", 1, true))
         ui.click("Toggle child link")
         ui.click("Block")
         ui.click("Advance 65 sec")
-        commands.GUARDIANSIM("network-status parent")
+        commands.KINWARDSIM("network-status parent")
         assert(output[#output]:find("expired", 1, true))
         ui.click("Toggle child link")
         ui.tick(5)
-        commands.GUARDIANSIM("network-status child")
+        commands.KINWARDSIM("network-status child")
         assert(output[#output]:find("party read: true", 1, true))
         assert(ns.settings == live and next(live) == "marker")
     end)

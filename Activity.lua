@@ -1,18 +1,75 @@
 local _, ns = ...
----@cast ns GuardianNamespace
+---@cast ns KinwardNamespace
 
 local function plain(value)
     return tostring(value):gsub("|", "||")
 end
 
+-- Escape captured content before adding our own chat colors. Captured text must
+-- never introduce links, textures, color escapes or additional forged chat lines.
+local function chatText(value)
+    return (plain(value):gsub("[\r\n]+", " "))
+end
+
+local chatChannels = {
+    whisper = { "Whisper", "ffff80ff" },
+    party = { "Party", "ffaaaaff" },
+    say = { "Say", "ffffffff" },
+    yell = { "Yell", "ffff4040" },
+    guild = { "Guild", "ff40ff40" },
+    raid = { "Raid", "ffff7f00" },
+    instance = { "Instance", "ffff7f00" },
+    ["channel:general"] = { "General", "ffffc0c0" },
+    ["channel:lookingforgroup"] = { "Looking For Group", "ffffc0c0" },
+    ["channel:trade"] = { "Trade", "ffffc0c0" },
+}
+local outcomes = {
+    allowed = "",
+    blocked = "|cffff6060[Blocked incoming]|r ",
+    ["blocked-attempt"] = "|cffff6060[Blocked send attempt]|r ",
+    attempted = "|cffffcc66[Send attempted]|r ",
+    output = "|cffaaaaaa[Local output]|r ",
+    gap = "|cffffcc66[Capture gap]|r ",
+}
+
+---@param record KinwardHistoryRecord
+---@return string
+local function chatLine(record)
+    local spec = chatChannels[record.channel] or { record.channel, "ffffcc66" }
+    local who = record.character ~= "" and record.character
+        or record.account ~= "" and record.account
+        or "Unknown identity"
+    local prefix = record.disposition == "gap" and ""
+        or ((record.direction == "send" and "To " or "") .. "[" .. chatText(who) .. "]: ")
+    local suffix = (record.truncated and " |cffaaaaaa[Text truncated]|r" or "")
+        .. (
+            record.endedAt > record.time
+                and (" |cffaaaaaa[Until " .. date("%H:%M:%S", record.endedAt) .. "]|r")
+            or ""
+        )
+    return "|cff999999["
+        .. date("%H:%M:%S", record.time)
+        .. "]|r "
+        .. (outcomes[record.disposition] or "")
+        .. "|c"
+        .. spec[2]
+        .. "["
+        .. chatText(spec[1])
+        .. "] "
+        .. prefix
+        .. chatText(record.text)
+        .. "|r"
+        .. suffix
+end
+
 ---A separate closure keeps the dashboard under Lua 5.1's 60-upvalue limit.
----@param d GuardianDashboard
+---@param d KinwardDashboard
 ---@param activity Frame
----@param widgets GuardianActivityWidgets
----@return GuardianActivityRefresh
+---@param widgets KinwardActivityWidgets
+---@return KinwardActivityRefresh
 function ns.NewActivityPanel(d, activity, widgets)
     local button, input, label = widgets.button, widgets.input, widgets.label
-    ---@type GuardianHistoryFilters
+    ---@type KinwardHistoryFilters
     local historyFilters = {}
     local historyPage, historyPeer = 1, nil
     local historyChannel, historyDirection, historyDisposition, historyWindow = 1, 1, 1, 1
@@ -48,14 +105,22 @@ function ns.NewActivityPanel(d, activity, widgets)
         { 86400, "Last 24 hours" },
         { 604800, "Last 7 days" },
     }
-    local channelFilter, directionFilter, outcomeFilter, timeFilter
-    channelFilter = button(activity, 14, 12, 166, "All channels", function()
-        historyChannel = historyChannel % #historyChannels + 1
-        local spec = historyChannels[historyChannel]
-        historyFilters.channel = spec[1] ~= "" and spec[1] or nil
-        channelFilter:SetText(spec[2])
-        historyPage = 1
+    local channelFilter = CreateFrame("DropdownButton", nil, activity, "WowStyle1DropdownTemplate")
+    ---@cast channelFilter DropdownButton
+    channelFilter:SetPoint("TOPLEFT", 14, -12)
+    channelFilter:SetSize(166, 24)
+    channelFilter:SetupMenu(function(_, rootDescription)
+        for index, spec in ipairs(historyChannels) do
+            rootDescription:CreateRadio(spec[2], function()
+                return historyChannel == index
+            end, function()
+                historyChannel = index
+                historyFilters.channel = spec[1] ~= "" and spec[1] or nil
+                historyPage = 1
+            end)
+        end
     end)
+    local directionFilter, outcomeFilter, timeFilter
     directionFilter = button(activity, 190, 12, 162, "Both directions", function()
         historyDirection = historyDirection % #historyDirections + 1
         local spec = historyDirections[historyDirection]
@@ -103,7 +168,10 @@ function ns.NewActivityPanel(d, activity, widgets)
     local historyBody = CreateFrame("Frame", nil, historyScroll)
     historyBody:SetSize(656, 232)
     historyScroll:SetScrollChild(historyBody)
-    local historyText = label(historyBody, 0, 0, 646, "", "GameFontHighlightSmall")
+    local chatBackground = historyScroll:CreateTexture(nil, "BACKGROUND")
+    chatBackground:SetAllPoints()
+    chatBackground:SetColorTexture(0, 0, 0, 0.65)
+    local historyText = label(historyBody, 8, 6, 630, "", "ChatFontNormal")
     local newerHistory = button(activity, 14, 408, 110, "Newer", function()
         historyPage = math.max(1, historyPage - 1)
     end)
@@ -140,41 +208,21 @@ function ns.NewActivityPanel(d, activity, widgets)
             local matched = ns.HistoryView(p, d.selectedChild or "", historyFilters, d.now())
             local pages = math.max(1, math.ceil(#matched / 20))
             historyPage = math.min(historyPage, pages)
-            local lines = {}
-            for i = (historyPage - 1) * 20 + 1, math.min(#matched, historyPage * 20) do
+            local lines, lastDay = {}, nil
+            -- Pages are selected newest first, but each page reads top to bottom
+            -- in chat order, with the most recent message at the bottom.
+            for i = math.min(#matched, historyPage * 20), (historyPage - 1) * 20 + 1, -1 do
                 local record = matched[i]
-                local who = record.character ~= "" and record.character
-                    or record.account ~= "" and record.account
-                    or "Unknown identity"
-                local status = {
-                    allowed = "Allowed incoming",
-                    blocked = "Blocked incoming",
-                    ["blocked-attempt"] = "Blocked send attempt",
-                    attempted = "Send attempted",
-                    output = "Local output observed",
-                    gap = "Capture gap",
-                }
-                lines[#lines + 1] = date("%Y-%m-%d %H:%M:%S", record.time)
-                    .. " · "
-                    .. record.channel
-                    .. " · "
-                    .. who
-                    .. "\n"
-                    .. (status[record.disposition] or record.disposition)
-                    .. (record.truncated and " · text truncated" or "")
-                    .. (record.endedAt > record.time and (" · until " .. date(
-                        "%H:%M:%S",
-                        record.endedAt
-                    )) or "")
-                    .. "\n"
-                    .. record.text
-                    .. "\n"
+                local day = date("%Y-%m-%d", record.time)
+                if day ~= lastDay then
+                    lines[#lines + 1] = "|cffffd100[" .. day .. "]|r"
+                    lastDay = day
+                end
+                lines[#lines + 1] = chatLine(record)
             end
             historyText:SetText(
-                plain(
-                    #lines > 0 and table.concat(lines, "\n")
-                        or "No matching captured chat. Choose another channel/time, or refresh when the child is reachable."
-                )
+                #lines > 0 and table.concat(lines, "\n")
+                    or "No matching captured chat. Choose another channel/time, or refresh when the child is reachable."
             )
             historyBody:SetHeight(math.max(232, historyText:GetStringHeight() + 10))
             newerHistory:SetEnabled(historyPage > 1)

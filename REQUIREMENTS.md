@@ -1,4 +1,4 @@
-# Guardian product requirements
+# Kinward product requirements
 
 Agreed requirements from the parent/child workflow discussion. This document
 specifies intended behavior, not functionality already implemented. The current
@@ -7,10 +7,10 @@ pending.
 
 ## Scope and trust
 
-Guardian supports cooperative children. It cannot prevent disabling the addon,
+Kinward supports cooperative children. It cannot prevent disabling the addon,
 editing/deleting saved data or communicating outside the supported game UI.
 Parent and child use separate WoW accounts. Development currently takes place
-in `_retail_/Interface/AddOns/Guardian/`; the target remains Forever. Verify
+in `_retail_/Interface/AddOns/Kinward/`; the target remains Forever. Verify
 behavior in the available client without assuming the two clients are identical.
 Mail, group-finder text and other non-chat player-written text are out of scope.
 
@@ -27,7 +27,7 @@ Mail, group-finder text and other non-chat player-written text are out of scope.
   account and requests guardianship. The guardian accepts from a notification
   or button; users do not create or type pairing codes or operation IDs.
   Before pairing completes,
-  Guardian imposes no restrictions. After pairing, permissions default closed
+  Kinward imposes no restrictions. After pairing, permissions default closed
   except the necessary guardian communication and control path.
 - One guardian can supervise multiple children. A child can have multiple
   guardians; adding another requires approval from an existing guardian.

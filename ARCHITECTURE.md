@@ -1,14 +1,14 @@
-# Guardian architecture
+# Kinward architecture
 
-Guardian targets WoW: Forever, not Classic Era. The source baseline is Gethe's
+Kinward targets WoW: Forever, not Classic Era. The source baseline is Gethe's
 `forever` branch at `17ed2c3e8471cdc3806ab0d26a082be7c67d3d7c`, whose
 `version.txt` reads **1.60.1.70755**. On 2026-11-03 the locally installed Forever
 executable's version strings and Battle.net's `wowf` build record both matched
 that build. The working directory itself was a Retail client installation; this
-repository lives in `_retail_/Interface/AddOns/Guardian/`, as requested for
-development until Forever releases. `Guardian.toc`, `Settings.lua` and `Core.lua`
+repository lives in `_retail_/Interface/AddOns/Kinward/`, as requested for
+development until Forever releases. `Kinward.toc`, `Settings.lua` and `Core.lua`
 are at the repository root, so this checkout is directly discoverable by the
-client. The installation root `.git` was empty/read-only; Guardian has its own
+client. The installation root `.git` was empty/read-only; Kinward has its own
 repository. Other addons and client files are untouched. This location does not
 change the Forever API baseline or establish Retail compatibility.
 
@@ -64,13 +64,13 @@ adapter is installed in Phase 2.
 `Core.lua` owns the narrow WoW boundary: an anonymous frame, `ADDON_LOADED`,
 `C_AddOns.GetAddOnMetadata`, the slash registry and chat output via `print`.
 It does not read saved variables until its own `ADDON_LOADED`, ignores other
-addons' events, then normalizes `GuardianDB`, records namespace settings and
-initialization state, and unregisters the event. `/guardian` reports TOC version
+addons' events, then normalizes `KinwardDB`, records namespace settings and
+initialization state, and unregisters the event. `/kinward` reports TOC version
 and initialization state. `enabled` is a sample persisted preference; it does
 not disable this diagnostic slash command.
 
-Only `GuardianDB` (account-wide saved settings) and `SLASH_GUARDIAN1` are new
-globals. The callback occupies `SlashCmdList.GUARDIAN`; no namespace global or
+Only `KinwardDB` (account-wide saved settings) and `SLASH_KINWARD1` are new
+globals. The callback occupies `SlashCmdList.KINWARD`; no namespace global or
 runtime framework is introduced. Addon-owned types live in `types/addon.lua`.
 
 Evidence in the pinned Forever reference (relative to `reference/blizzard-ui/`):
@@ -110,7 +110,7 @@ types and missing TOC files; all temporary changes were restored.
 files only. XML Script/Include dependencies are recursively validated if added;
 unlisted runtime files and symlinks are rejected. Known development directories
 are excluded from runtime discovery and forbidden in the TOC. `.pkgmeta` also
-excludes development files for CurseForge packaging. The archive contains only `Guardian/`.
+excludes development files for CurseForge packaging. The archive contains only `Kinward/`.
 
 These checks establish scaffold logic and static consistency, not actual client
 loading, saved-variable persistence across sessions or UI behavior. Secret
@@ -122,7 +122,7 @@ been performed.
 
 See `docs/CAPABILITIES.md` for source evidence and unsupported/inaccessible
 filter states. `scripts/phase1_probe.py` explicitly stages a marker-only probe
-and temporary TOC entry; it is inactive until `/guardianprobe start`. The
+and temporary TOC entry; it is inactive until `/kinwardprobe start`. The
 manifest rejects staged probes, and `.pkgmeta` excludes probes and docs. Checks
 include strict Lua 5.1 probe boundary/lifecycle tests and isolated staging tests.
 These test developer tooling, not live enforcement. All runtime/client and
@@ -133,18 +133,18 @@ two-account gates remain unverified in `docs/PHASE1_RESULTS.md`.
 
 `scripts/probes/Phase2Simulator.lua` shares the production pure modules but owns
 four independent fixture profiles and a bounded in-memory transport. Explicit
-staging adds `/guardiansim`; all state is closure-local and never accesses live
+staging adds `/kinwardsim`; all state is closure-local and never accesses live
 SavedVariables or live messaging. Fault controls and usage are documented in
 [docs/PHASE2_SIMULATOR.md](docs/PHASE2_SIMULATOR.md). Staged harnesses are rejected
 by the manifest and excluded by `.pkgmeta`. Lua tests reject unexpected global
 reads/writes, verify state isolation, and exercise the actual slash commands.
 All existing runtime globals remain intentional; the extra development-only
-`SLASH_GUARDIANSIM1` is typed alongside the probe slash global.
+`SLASH_KINWARDSIM1` is typed alongside the probe slash global.
 
 
 ## Shared-client manifest
 
-`Guardian.toc` uses the supported comma-delimited interface list `16001, 120105`
+`Kinward.toc` uses the supported comma-delimited interface list `16001, 120105`
 to load the same files on Forever and the user's Retail development client.
 Manifest checks pin both exact values and preserve runtime completeness; both
 local zip and CurseForge packages retain this single manifest. The TOC list is
@@ -178,7 +178,7 @@ verification is claimed.
 The explicit runtime order now places `Transport.lua`, `WoWTransport.lua` and
 `Dashboard.lua` after `Family.lua`, before Settings/Core. These modules declare
 functions without making WoW calls at load. Core retains its original diagnostic
-slash output; `/guardian ui` lazily constructs a visual dashboard with child selection, permission controls and family actions
+slash output; `/kinward ui` lazily constructs a visual dashboard with child selection, permission controls and family actions
 from the normalized live profile. No live transport is installed on ADDON_LOADED.
 New widget APIs and the candidate Battle.net route are evidenced against the
 pinned Forever source in [docs/PHASE4_TRANSPORT.md](docs/PHASE4_TRANSPORT.md).
@@ -187,7 +187,7 @@ No new globals, libraries or services are introduced.
 Transport's clock, friendship, routing and send boundary is injected. Production
 policy operations carry absolute delivery deadlines, receipts and correlated
 application revisions. Child revisions/replay entries persist; work, reassembly,
-contacts and partially collected snapshots are transient. Guardian caches are
+contacts and partially collected snapshots are transient. Kinward caches are
 bounded and validated during normalization. The staged Phase 2 harness adds a
 separate Phase 4 network model using the production transport, including reply
 loss/delay, receipts, independent dashboards and clock control. It never obtains
@@ -207,7 +207,7 @@ The visual dashboard keeps one frame per model and captures exact targets for
 confirmation. Button actions pass separate arguments to production logic,
 including spaced realm names. Read/send states and delivery states are separate;
 whisper grants remain bidirectional. Slash commands remain diagnostic tooling.
-The explicitly staged harness supplies `/guardian demo`, endpoint switching,
+The explicitly staged harness supplies `/kinward demo`, endpoint switching,
 automatic fixture-clock advancement and outage controls. Its frame driver is
 created only on explicit demo activation and never obtains live SavedVariables
 or messaging. Additional widget APIs are pinned in PHASE4_TRANSPORT.md. No actual
@@ -270,7 +270,7 @@ retention/count loss, send attempts and observed output remain distinct.
 
 Current guardians fetch bounded cursor batches through the existing authenticated
 transport. History jobs have reserved bounds and run after control/request work;
-queued replies recheck authorization before every fragment. Guardian cursors and
+queued replies recheck authorization before every fragment. Kinward cursors and
 received data persist; pending correlations/watchers/delivery are transient.
 Membership generation changes reset guardian views; stop/re-pair clears source
 history. The Activity viewer is guardian-only and never feeds child/debug widgets.
@@ -305,7 +305,7 @@ for retry/reload; pending proposals/inboxes remain transient and bounded. See
 `Minimap.lua` loads before Core and declares an idempotent installer. Own
 ADDON_LOADED initializes settings, then creates one anonymous shield button
 parented to the existing Minimap; if the map is not available yet, Core retries
-on PLAYER_LOGIN. The button's left click and `/guardian ui` share OpenDashboard,
+on PLAYER_LOGIN. The button's left click and `/kinward ui` share OpenDashboard,
 reusing the same live local model without selecting or creating simulator state.
 Hover shows a simple tooltip. The launcher adds no globals, saved fields or
 runtime dependencies and does not activate chat or transport.
@@ -332,3 +332,33 @@ Strict initialization tests cover delayed minimap creation, own-addon isolation,
 launcher idempotence, tooltip callbacks and shared dashboard identity with the
 slash command. Checks/package pass; actual placement, rendering and alternative
 minimap UI compatibility still need in-game observation. No game client was run.
+
+
+## Custom minimap icon and dragging
+
+The launcher uses the packaged root texture `KinwardIcon.tga` (64 × 64 RGBA,
+uncompressed). Generation provenance and source art live in `docs/art/` and are
+excluded from releases. The package manifest explicitly validates/includes the
+texture without treating it as executable TOC content.
+
+Holding the left button and dragging moves the launcher around a 92 UI-unit
+radius. Cursor coordinates are divided by the minimap effective scale before
+subtracting its center. The optional `minimapAngle` setting stores radians on
+drag stop; nonnumeric/nonfinite saved values use the original lower-left default.
+Only an active drag installs OnUpdate; stopping/hiding removes it. A drag release
+does not open the dashboard.
+
+New API evidence against the pinned Forever source, relative to
+`reference/blizzard-ui/Interface/AddOns/`:
+
+- `Blizzard_SharedXML/SharedBasicControls.xml`, `TitleDragAreaTemplate`:
+  `RegisterForDrag("LeftButton")`, `OnDragStart`, `OnDragStop`.
+- `Blizzard_Minimap/Mainline/Minimap.lua`, cursor handling: `GetCursorPosition`,
+  `GetEffectiveScale`, `GetCenter`.
+- `Blizzard_SharedXML/Blizzard_RadialWheel.lua`: `math.atan2`, `math.sin`, `math.cos`.
+- `Blizzard_Minimap/Mainline/Minimap.lua`: `ClearAllPoints`
+  (also used throughout the pinned UI).
+
+Tests cover drag/click separation, cursor scaling, saved position restoration,
+invalid settings and drag cleanup. Actual texture loading and mouse behavior
+(including combat and minimap replacements) require in-game verification.

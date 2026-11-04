@@ -1,5 +1,5 @@
 local _, ns = ...
----@cast ns GuardianNamespace
+---@cast ns KinwardNamespace
 
 local function copyGrant(fields)
     local grant = { mode = fields[8], expiresAt = tonumber(fields[9]), sessionId = fields[10] }
@@ -19,10 +19,10 @@ local function copyGrant(fields)
     return ns.ValidGrant(grant) and grant or nil
 end
 
----@param profile GuardianSettings
+---@param profile KinwardSettings
 ---@param id string Verified local account identity.
 ---@param freshToken fun(): string Globally fresh across resets, data deletion and installations.
----@return GuardianFamily
+---@return KinwardFamily
 function ns.NewFamily(profile, id, freshToken)
     return { profile = profile, id = id, freshToken = freshToken, attempts = 0, outgoing = {} }
 end
@@ -50,7 +50,7 @@ local function rotate(endpoint)
     return token
 end
 
----@param endpoint GuardianFamily
+---@param endpoint KinwardFamily
 ---@param peer string Intended transport identity, confirmed in the child UI.
 ---@param code string Adapter supplies a fresh unpredictable code; simulator uses explicit fixtures.
 ---@param now number
@@ -75,7 +75,7 @@ function ns.FamilyInvite(endpoint, peer, code, now)
     return true
 end
 
----@param endpoint GuardianFamily
+---@param endpoint KinwardFamily
 ---@param peer string
 ---@param generation string
 ---@return boolean
@@ -83,7 +83,7 @@ function ns.FamilyCanDeliver(endpoint, peer, generation)
     return ns.CanControl(endpoint.profile, peer, generation)
 end
 
----@param endpoint GuardianFamily
+---@param endpoint KinwardFamily
 ---@param peer string
 ---@param operation string Exact pending pairing operation, never just a code.
 ---@param now number
@@ -113,7 +113,7 @@ function ns.FamilyConfirm(endpoint, peer, operation, confirmed, now, friends)
     return true, "paired"
 end
 
----@param endpoint GuardianFamily
+---@param endpoint KinwardFamily
 ---@param confirmed boolean Explicit stop-supervision/recovery confirmation.
 ---@return boolean, string
 function ns.FamilyReset(endpoint, confirmed)
@@ -299,7 +299,7 @@ local function apply(endpoint, fields, now, friends)
     return "unsupported-operation"
 end
 
----@param endpoint GuardianFamily
+---@param endpoint KinwardFamily
 ---@param peer string Transport-reported verified identity. Never extracted from payload.
 ---@param wire unknown
 ---@param now number
@@ -535,7 +535,7 @@ function ns.FamilyReceive(endpoint, peer, wire, now, friends)
         ack
 end
 
----@param endpoint GuardianFamily
+---@param endpoint KinwardFamily
 ---@param peer string
 ---@param generation string
 ---@param kind string
@@ -579,7 +579,7 @@ function ns.FamilyRequest(endpoint, peer, generation, kind, arguments)
     return wire
 end
 
----@param endpoint GuardianFamily
+---@param endpoint KinwardFamily
 ---@param peer string Verified child identity from transport.
 ---@param wire unknown
 ---@return boolean, string

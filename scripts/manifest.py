@@ -11,12 +11,12 @@ ADDON = ROOT
 DEV_DIRS = {'.git', '.github', '.tools', '.reports', 'dist', 'tests', 'types', 'reference', 'scripts', 'docs'}
 
 def validate():
-    if (ROOT / 'Phase1Probe.lua').exists() or 'Phase1Probe.lua' in (ROOT / 'Guardian.toc').read_text():
+    if (ROOT / 'Phase1Probe.lua').exists() or 'Phase1Probe.lua' in (ROOT / 'Kinward.toc').read_text():
         raise ValueError('Development probe staged; run python3 scripts/phase1_probe.py remove before checking/packaging')
-    if (ROOT / 'Phase2Simulator.lua').exists() or 'Phase2Simulator.lua' in (ROOT / 'Guardian.toc').read_text():
+    if (ROOT / 'Phase2Simulator.lua').exists() or 'Phase2Simulator.lua' in (ROOT / 'Kinward.toc').read_text():
         raise ValueError('Development simulator staged; run python3 scripts/phase2_simulator.py remove before checking/packaging')
     seen = set()
-    files = ['Guardian.toc']
+    files = ['Kinward.toc']
     def include(raw, parent):
         raw = raw.replace('\\', '/')
         rel = parent / PurePosixPath(raw)
@@ -42,8 +42,8 @@ def validate():
             for element in ET.parse(current).iter():
                 if element.tag.rsplit('}', 1)[-1] in ('Include', 'Script') and 'file' in element.attrib:
                     include(element.attrib['file'], rel.parent)
-    toc = (ADDON / 'Guardian.toc').read_text()
-    for key, value in [('Interface', '16001, 120105'), ('SavedVariables', 'GuardianDB')]:
+    toc = (ADDON / 'Kinward.toc').read_text()
+    for key, value in [('Interface', '16001, 120105'), ('SavedVariables', 'KinwardDB')]:
         if re.findall(r'^## ' + key + r':\s*(.+)$', toc, re.M) != [value]:
             raise ValueError(f'Expected one {key}: {value}')
     for line in toc.splitlines():
@@ -60,6 +60,13 @@ def validate():
                 actual.add(str(path.relative_to(ADDON)))
     if actual != set(files):
         raise ValueError(f'Unmanifested runtime files: {sorted(actual - set(files))}')
+    # Textures are loaded by Lua, not as executable TOC entries. Keep the
+    # explicit asset list small and validate it just like manifest paths.
+    for name in ('KinwardIcon.tga',):
+        asset = ADDON / name
+        if asset.is_symlink() or not asset.is_file():
+            raise ValueError(f'Missing runtime texture or symlink: {name}')
+        files.append(name)
     return files
 
 if __name__ == '__main__':
@@ -67,17 +74,17 @@ if __name__ == '__main__':
         files = validate()
         print(f'Manifest valid: {len(files)} runtime files')
         if '--package' in sys.argv:
-            version = re.search(r'^## Version: ([\w.-]+)$', (ADDON / 'Guardian.toc').read_text(), re.M).group(1)
-            target = ROOT / 'dist' / f'Guardian-{version}.zip'
+            version = re.search(r'^## Version: ([\w.-]+)$', (ADDON / 'Kinward.toc').read_text(), re.M).group(1)
+            target = ROOT / 'dist' / f'Kinward-{version}.zip'
             target.parent.mkdir(exist_ok=True)
             with zipfile.ZipFile(target, 'w', zipfile.ZIP_DEFLATED) as z:
                 for name in files:
-                    info = zipfile.ZipInfo('Guardian/' + name, date_time=(2026, 1, 1, 0, 0, 0))
+                    info = zipfile.ZipInfo('Kinward/' + name, date_time=(2026, 1, 1, 0, 0, 0))
                     info.external_attr = 0o100644 << 16
                     info.compress_type = zipfile.ZIP_DEFLATED
                     z.writestr(info, (ADDON / name).read_bytes())
             with zipfile.ZipFile(target) as z:
-                assert z.namelist() == ['Guardian/' + f for f in files]
+                assert z.namelist() == ['Kinward/' + f for f in files]
                 assert z.testzip() is None
             print(target.relative_to(ROOT))
     except (ValueError, OSError, ET.ParseError) as exc:

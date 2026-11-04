@@ -11,8 +11,8 @@ or lockdown experiment was run by the implementation agent.
 
 The plan explicitly requires the route verified in Phase 1. P1-ID/P1-ROUTE are
 still unverified and two test accounts are unavailable. Consequently Core does
-not activate the candidate WoW adapter. `/guardian ui` opens a local dashboard;
-`/guardian role guardian` or `role child` saves a role only while unpaired without
+not activate the candidate WoW adapter. `/kinward ui` opens a local dashboard;
+`/kinward role guardian` or `role child` saves a role only while unpaired without
 children. The window has a child selector, role buttons and Permissions, Family
 & pairing, Requests, Activity, and Connection tabs. Read/send rows have separate Allow/Block controls
 and colored saved/pending/delivered states. Whisper controls specify a character
@@ -147,30 +147,30 @@ python3 scripts/phase2_simulator.py install
 Reload the game and run:
 
 ```text
-/guardiansim network-reset
-/guardiansim network child invite parent 12345678
-/guardiansim network parent pair child 12345678
-/guardiansim network-pump 2
-/guardiansim network-status child
-/guardiansim network child confirm parent parent:1 confirm
-/guardiansim network parent sync child
-/guardiansim network-pump 4
-/guardiansim network-ui parent
-/guardiansim network-ui child
-/guardiansim network parent allow child party read
-/guardiansim network-pump 5
-/guardiansim network-status parent
-/guardiansim network-status child
+/kinwardsim network-reset
+/kinwardsim network child invite parent 12345678
+/kinwardsim network parent pair child 12345678
+/kinwardsim network-pump 2
+/kinwardsim network-status child
+/kinwardsim network child confirm parent parent:1 confirm
+/kinwardsim network parent sync child
+/kinwardsim network-pump 4
+/kinwardsim network-ui parent
+/kinwardsim network-ui child
+/kinwardsim network parent allow child party read
+/kinwardsim network-pump 5
+/kinwardsim network-status parent
+/kinwardsim network-status child
 ```
 
 The guardian shows applied order 1; party read becomes true while send remains
 false. Each window's buttons act against its own simulated endpoint. These
-manual commands advance time with `network-pump`; `/guardian demo` additionally
+manual commands advance time with `network-pump`; `/kinward demo` additionally
 starts automatic fixture-clock advancement. No simulated traffic reaches WoW messaging.
 The code is a fixed synthetic fixture, not a live pairing-code generator.
 
 Additional simulator slash command arguments (prefix each with
-`/guardiansim network ENDPOINT`; the visual window uses buttons and fields):
+`/kinwardsim network ENDPOINT`; the visual window uses buttons and fields):
 
 ```text
 inspect child party send
@@ -194,13 +194,13 @@ current effective fixture permissions, including expiry and session inputs.
 Exercise outages:
 
 ```text
-/guardiansim network-connect child off
-/guardiansim network parent deny child party read
-/guardiansim network-pump 10
-/guardiansim network-status parent
-/guardiansim network-connect child on
-/guardiansim network-pump 20
-/guardiansim network-status parent
+/kinwardsim network-connect child off
+/kinwardsim network parent deny child party read
+/kinwardsim network-pump 10
+/kinwardsim network-status parent
+/kinwardsim network-connect child on
+/kinwardsim network-pump 20
+/kinwardsim network-status parent
 ```
 
 The edit applies if delivered within its deadline. Repeat with 65 seconds before
@@ -224,8 +224,8 @@ they do not establish game rendering, authentication or actual delivery.
 
 ## Visual one-session demo
 
-After staging the harness and reloading, run `/guardian demo`, or click
-**Single-session demo** in `/guardian ui`. The four endpoint buttons switch
+After staging the harness and reloading, run `/kinward demo`, or click
+**Single-session demo** in `/kinward ui`. The four endpoint buttons switch
 between parent, child, parent2 and child2 in the same window. Fixtures remain
 isolated from live profiles. The demo clock advances automatically while the
 client runs; no `network-pump` command is needed.
@@ -254,8 +254,8 @@ requests pairing. The existing guardian enters the pending peer and operation
 Membership rows offer **Remove guardian**; removing the last guardian explicitly
 asks to stop supervision. Cancel leaves the original relationship untouched.
 
-`/guardiansim network-reset` starts fresh unpaired fixtures and hides old demo
-windows. Run `/guardian demo` again. Closing/reopening windows reuses the same
+`/kinwardsim network-reset` starts fresh unpaired fixtures and hides old demo
+windows. Run `/kinward demo` again. Closing/reopening windows reuses the same
 model and frame; it does not reset pairing or apply another operation.
 Mocked visual workflow tests cover buttons, confirmation/cancellation, selected
 child isolation, disabled live controls, spaced realm targets and a complete
@@ -274,3 +274,20 @@ reconnect before/after deadlines, revocation during a snapshot, reload and
 messaging lockdown. Check errors, taint and inaccessible data on both clients.
 Forever and Retail records remain separate. These checks close Phase 4 only
 when actual two-account results pass; the one-client simulation cannot do so.
+
+## Permission navigation
+
+Permissions has separate Chat channels and Whisper contacts views. The channel
+list scrolls and includes stable keys `channel:general`,
+`channel:lookingforgroup`, `channel:trade`, `channel:services` and
+`channel:localdefense`, alongside group, say and yell controls. These use the
+existing independent read/send policy operations; displaying a setting does not
+add capture/enforcement coverage for that route.
+
+Whisper contacts lists fetched character/account settings and pending policy
+changes, five contacts per page. Select a row to edit bidirectional access or use
+Add whisper contact. Revoked/expired entries remain visible with their state.
+Changing child or relationship clears the editor and resets contact paging.
+Guardians retain their existing automatic verified-account access. Sync selected
+child fetches saved settings; empty/unknown caches do not establish an empty
+allowlist. No new widget APIs were introduced for this navigation.

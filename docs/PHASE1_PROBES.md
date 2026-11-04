@@ -1,30 +1,30 @@
 # Reproducing the Phase 1 experiments
 
 These are development experiments, not supervision. Use two consenting test
-accounts A and B and harmless text beginning with `GUARDIAN-P1`. Run both ends
-in the same target build, first with default UI and only Guardian enabled; repeat
+accounts A and B and harmless text beginning with `KINWARD-P1`. Run both ends
+in the same target build, first with default UI and only Kinward enabled; repeat
 with ElvUI separately if installed. This workspace is currently in Retail;
 record Retail separately from Forever, including failed symbol/loading checks.
 No client results have been collected yet.
 
 ## Setup and cleanup
 
-From the Guardian repository, with no other TOC edits in progress:
+From the Kinward repository, with no other TOC edits in progress:
 
 ```sh
 python3 scripts/phase1_probe.py install
 ```
 
-This stages `Phase1Probe.lua` and appends one marked block to Guardian.toc.
+This stages `Phase1Probe.lua` and appends one marked block to Kinward.toc.
 Nothing is active on load except a session-metadata event listener and the
-`/guardianprobe` command. In each client enable script errors, record build,
+`/kinwardprobe` command. In each client enable script errors, record build,
 then activate explicitly:
 
 ```text
 /console scriptErrors 1
 /dump GetBuildInfo()
-/guardianprobe status
-/guardianprobe start
+/kinwardprobe status
+/kinwardprobe start
 ```
 
 `start` resets counters; repeating it while active does nothing. Only marker
@@ -44,7 +44,7 @@ An error is a result, not a reason to bypass a protected action.
 Cleanup on both accounts:
 
 ```text
-/guardianprobe stop
+/kinwardprobe stop
 ```
 
 Then, from the repository:
@@ -68,7 +68,7 @@ packager against a staged development TOC.
 ## P1-IN — incoming filter
 
 1. Activate on A; leave B's probe stopped. From B whisper A
-   `GUARDIAN-P1 incoming-01`, then `control incoming-02`. Send analogous party
+   `KINWARD-P1 incoming-01`, then `control incoming-02`. Send analogous party
    messages. A should see only control messages in each subscribed chat frame;
    status should count discarded callbacks. Do not equate multiple callbacks
    with multiple received messages.
@@ -83,7 +83,7 @@ packager against a staged development TOC.
 
 Keep B's probe **stopped** so its incoming filter cannot conceal a leaked send.
 Activate A. For every route below first send a non-marker control and confirm
-B receives it; then attempt a distinct `GUARDIAN-P1 route-N` marker and check
+B receives it; then attempt a distinct `KINWARD-P1 route-N` marker and check
 both A's prevented counter and B's actual receipt. Observe both long enough to
 rule out normal delivery delay. Any marker received on B is a bypass, regardless
 of A's displayed echo or counter. Repeat outside combat, in combat, and in any
@@ -92,14 +92,14 @@ observed messaging-lockdown state; the states are not interchangeable.
 | Route | Action on A | What the experiment decides |
 | --- | --- | --- |
 | Normal entry | Select party or whisper B, type marker and Enter | Whether shared send API replacement is reached and permitted |
-| Slash types | `/p GUARDIAN-P1 party-01`, `/w Name-Realm GUARDIAN-P1 whisper-01` | Slash normalization and final send coverage |
-| Reply/retell | Receive a control whisper, then `/r GUARDIAN-P1 reply-01` and `/t GUARDIAN-P1 retell-01` | Direct reply handler and current recipient coverage |
+| Slash types | `/p KINWARD-P1 party-01`, `/w Name-Realm KINWARD-P1 whisper-01` | Slash normalization and final send coverage |
+| Reply/retell | Receive a control whisper, then `/r KINWARD-P1 reply-01` and `/t KINWARD-P1 retell-01` | Direct reply handler and current recipient coverage |
 | Separate window | Open B's whisper window, send marker | Instance edit box versus shared boundary |
-| Plain chat macro | Button macro `/p GUARDIAN-P1 macro-01` | Secure command path; do not assume it uses replaceable Lua field |
-| Script macro/addon send | `/run C_ChatInfo.SendChatMessage("GUARDIAN-P1 script-01", "WHISPER", nil, "Name-Realm")` | Direct current API reference; errors/restrictions also recorded |
-| Cached reference | Before start, `/run GuardianP1CachedSend = C_ChatInfo.SendChatMessage`; after start call it with same arguments | Known wrapper limitation: an earlier captured reference may bypass it. Clear with `/run GuardianP1CachedSend = nil`, then reload |
+| Plain chat macro | Button macro `/p KINWARD-P1 macro-01` | Secure command path; do not assume it uses replaceable Lua field |
+| Script macro/addon send | `/run C_ChatInfo.SendChatMessage("KINWARD-P1 script-01", "WHISPER", nil, "Name-Realm")` | Direct current API reference; errors/restrictions also recorded |
+| Cached reference | Before start, `/run KinwardP1CachedSend = C_ChatInfo.SendChatMessage`; after start call it with same arguments | Known wrapper limitation: an earlier captured reference may bypass it. Clear with `/run KinwardP1CachedSend = nil`, then reload |
 | Battle.net chat | Send a marker from BNet conversation window | Separate API, outside this wrapper; expected uncovered until tested |
-| Emote | `/e GUARDIAN-P1 emote-01` and a built-in emote | Custom text versus `PerformEmote`; record separately |
+| Emote | `/e KINWARD-P1 emote-01` and a built-in emote | Custom text versus `PerformEmote`; record separately |
 
 The optional cached-reference macro creates a temporary developer global only
 for that experiment. No post-hook is used: its callback would run after sending.
@@ -144,8 +144,8 @@ Activate both probes; note exact prefix-registration results (0 success,
 1 duplicate). On each endpoint:
 
 ```text
-/guardianprobe char PeerName-PeerRealm
-/guardianprobe bn CURRENT_PEER_GAME_ACCOUNT_ID
+/kinwardprobe char PeerName-PeerRealm
+/kinwardprobe bn CURRENT_PEER_GAME_ACCOUNT_ID
 ```
 
 Replace the numeric placeholder using a freshly resolved game-account record

@@ -1,5 +1,5 @@
 local _, ns = ...
----@cast ns GuardianNamespace
+---@cast ns KinwardNamespace
 
 -- Length-prefixed strings only: no executable deserialization or ambiguous escaping.
 -- A transport adapter must authenticate the peer separately from these bytes.

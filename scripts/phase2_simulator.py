@@ -5,8 +5,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'scripts/probes/Phase2Simulator.lua'
 STAGED = ROOT / 'Phase2Simulator.lua'
-TOC = ROOT / 'Guardian.toc'
-ENTRY = '\n# Guardian phase 2 development simulator (do not release)\nPhase2Simulator.lua\n'
+TOC = ROOT / 'Kinward.toc'
+ENTRY = '\n# Kinward phase 2 development simulator (do not release)\nPhase2Simulator.lua\n'
 
 
 def toggle(action):
@@ -20,7 +20,7 @@ def toggle(action):
         except OSError:
             STAGED.unlink()
             raise
-        print('Simulator staged, inactive. Reload client; then /guardian demo for visual testing, or /guardiansim reset.')
+        print('Simulator staged, inactive. Reload client; then /kinward demo for visual testing, or /kinwardsim reset.')
     elif action == 'remove':
         if ENTRY not in toc:
             raise ValueError('Exact simulator TOC marker missing; refusing to alter files')

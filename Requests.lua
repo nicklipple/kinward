@@ -1,5 +1,5 @@
 local _, ns = ...
----@cast ns GuardianNamespace
+---@cast ns KinwardNamespace
 
 local states = { pending = true, approved = true, denied = true, cancelled = true, expired = true }
 local function integer(value, maximum)
@@ -36,7 +36,7 @@ function ns.ValidRequest(r)
         and states[r.state] == true
 end
 
----@param profile GuardianRequestState
+---@param profile KinwardRequestState
 ---@return boolean
 function ns.ValidRequestState(profile)
     if profile.requestPrompts ~= nil and type(profile.requestPrompts) ~= "boolean" then
@@ -73,7 +73,7 @@ function ns.ValidRequestState(profile)
     return count <= 32
 end
 
----@param profile GuardianSettings
+---@param profile KinwardSettings
 ---@param now number
 function ns.ExpireRequests(profile, now)
     for _, r in pairs(profile.requests or {}) do
@@ -83,9 +83,9 @@ function ns.ExpireRequests(profile, now)
     end
 end
 
----@param profile GuardianSettings
+---@param profile KinwardSettings
 ---@param now number
----@return GuardianRequest[]
+---@return KinwardRequest[]
 function ns.RequestRows(profile, now)
     ns.ExpireRequests(profile, now)
     local rows = {}
@@ -98,14 +98,14 @@ function ns.RequestRows(profile, now)
     return rows
 end
 
----@param profile GuardianSettings
+---@param profile KinwardSettings
 ---@param id string Verified local identity, never user-entered authority.
 ---@param channel string
 ---@param direction 'read'|'send'
 ---@param target string
 ---@param reason string
 ---@param now number
----@return GuardianRequest?, string
+---@return KinwardRequest?, string
 function ns.CreateRequest(profile, id, channel, direction, target, reason, now)
     if profile.supervision ~= "paired" or profile.role ~= "child" then
         return nil, "supervision-required"
@@ -164,7 +164,7 @@ function ns.CreateRequest(profile, id, channel, direction, target, reason, now)
     return r, "queued-locally"
 end
 
----@param profile GuardianSettings
+---@param profile KinwardSettings
 ---@param id string
 ---@param now number
 ---@return boolean, string
@@ -179,7 +179,7 @@ function ns.CancelRequest(profile, id, now)
 end
 
 ---Runs only behind Family's current-guardian authorization and durable replay gate.
----@param profile GuardianSettings
+---@param profile KinwardSettings
 ---@param fields string[]
 ---@param now number
 ---@param applyPolicy fun(fields: string[]): string
@@ -253,8 +253,8 @@ function ns.ApplyRequestDecision(profile, fields, now, applyPolicy)
 end
 
 ---Body-free prompt creation; never receives message text or transport claims.
----@param chat GuardianChat
----@param identity GuardianIdentity
+---@param chat KinwardChat
+---@param identity KinwardIdentity
 function ns.ChatWhisperPrompt(chat, identity)
     local p, now = chat.profile, chat.context().now
     local character = ns.CharacterKey(identity.character)
@@ -280,7 +280,7 @@ function ns.ChatWhisperPrompt(chat, identity)
     chat.prompt = { character = character, expires = now + 60, generation = p.generation }
 end
 
----@param profile GuardianSettings
+---@param profile KinwardSettings
 ---@param fields string[]
 ---@param now number
 ---@return string?
@@ -315,10 +315,10 @@ function ns.RequestPage(profile, fields, now)
     })
 end
 
----@param t GuardianTransport
+---@param t KinwardTransport
 ---@param peer string
 ---@param fields string[]
----@param item GuardianDelivery
+---@param item KinwardDelivery
 ---@return boolean
 function ns.AcceptRequestPage(t, peer, fields, item)
     local child = t.family.profile.childProfiles[peer]
@@ -385,7 +385,7 @@ function ns.AcceptRequestPage(t, peer, fields, item)
     return true
 end
 
----@param t GuardianTransport
+---@param t KinwardTransport
 function ns.PollRequests(t)
     local now = t.io.now()
     if now < (t.nextRequestPoll or 0) then

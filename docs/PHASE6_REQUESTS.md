@@ -58,7 +58,7 @@ client work. Expiry after offline time uses the existing production evaluator.
 Every queued decision has a **60-second delivery deadline** in the UI. A late
 packet cannot grant access even if it arrives after local transport expiry.
 Retries retain operation IDs and durable child replay results, so lost replies
-cannot restart a duration or create a second write. Guardian transport work is
+cannot restart a duration or create a second write. Kinward transport work is
 transient across reload; fetch the child's state before making a new decision.
 
 Approval requires the request's recorded base revision to equal the child's
@@ -122,10 +122,10 @@ Current guardians can disable stranger prompts via an authenticated control
 operation. Disabling prompts never allows blocked content; manual requests remain
 available. Relationship and prompt expiry are checked again at UI action time.
 
-The candidate WoW filter invokes optional `GuardianChatIO.prompt(character)` on
+The candidate WoW filter invokes optional `KinwardChatIO.prompt(character)` on
 a new prompt. A future verified bootstrap can use it to open the child dashboard
 bound to its current transport/chat model. Without that callback the candidate
-prints only the accessible sender and directs the child to `/guardian ui`.
+prints only the accessible sender and directs the child to `/kinward ui`.
 The bound dashboard offers **Request whisper access** from the sender-only prompt.
 The live bootstrap remains gated; no real whispers are intercepted today.
 
@@ -146,7 +146,7 @@ sentinels do not verify actual rendering, lockdown, protected paths or taint.
 ## One-client demo
 
 Stage with `python3 scripts/phase2_simulator.py install`, reload, then
-`/guardian demo`. Pair parent/child with the existing Family controls and sync.
+`/kinward demo`. Pair parent/child with the existing Family controls and sync.
 The demo is closure-local, uses fixture identity/time and never accesses live
 SavedVariables, chat or messaging. Connection remains available throughout.
 
@@ -155,15 +155,15 @@ SavedVariables, chat or messaging. Connection remains available throughout.
 2. Switch to **parent**, select child, open Requests and Refresh requests. Read
    exact scope/reason, then approve for 15 minutes. Observe queued/application
    status and switch back to child to see the applied result.
-3. Check `/guardiansim network-chat child read party Friend-TestRealm unused 1`:
+3. Check `/kinwardsim network-chat child read party Friend-TestRealm unused 1`:
    allowed. Check send separately: still blocked. Whisper access remains closed.
 4. On child, cycle Access to Whisper character, enter `Friend-TestRealm`, request,
    then on parent refresh and approve Until logout. Both whisper directions allow
    that character, while a party stranger remains closed.
-5. Use `/guardiansim network-reload child`: the session grant survives. Use
-   `/guardiansim network-login child`: it expires. These are fixture tokens only.
+5. Use `/kinwardsim network-reload child`: the session grant survives. Use
+   `/kinwardsim network-login child`: it expires. These are fixture tokens only.
 6. With a closed character whisper, invoke
-   `/guardiansim network-chat child read whisper Stranger-TestRealm unused 77`.
+   `/kinwardsim network-chat child read whisper Stranger-TestRealm unused 77`.
    Child's dashboard shows the sender-only prompt and a request button. Repeat
    line 77: no duplicate prompt. Disable Stranger prompts from the parent Requests
    tab, pump, and repeat with a new sender: no new prompt, still blocked.
@@ -177,12 +177,12 @@ SavedVariables, chat or messaging. Connection remains available throughout.
 Command equivalents (fresh fixture IDs start at `child:request:1`):
 
 ```text
-/guardiansim network child request party read - Playing with my group
-/guardiansim network parent requests child
-/guardiansim network-pump 8
-/guardiansim network parent decide child REQUEST_ID approve duration 900
-/guardiansim network parent decide child REQUEST_ID deny - -
-/guardiansim network child cancel-request REQUEST_ID
+/kinwardsim network child request party read - Playing with my group
+/kinwardsim network parent requests child
+/kinwardsim network-pump 8
+/kinwardsim network parent decide child REQUEST_ID approve duration 900
+/kinwardsim network parent decide child REQUEST_ID deny - -
+/kinwardsim network child cancel-request REQUEST_ID
 ```
 
 The visual view intentionally uses scopes/reasons instead of raw protocol IDs.

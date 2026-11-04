@@ -19,7 +19,7 @@ setmetatable(env, {
         error("Unexpected global read: " .. key)
     end,
     __newindex = function(t, key, value)
-        assert(key == "SLASH_GUARDIANSIM1", "Unexpected global write: " .. key)
+        assert(key == "SLASH_KINWARDSIM1", "Unexpected global write: " .. key)
         rawset(t, key, value)
     end,
 })
@@ -37,7 +37,7 @@ for _, file in ipairs({
     "scripts/probes/Phase2Simulator.lua",
 }) do
     local chunk = assert(loadfile(file))
-    setfenv(chunk, env)("Guardian", ns)
+    setfenv(chunk, env)("Kinward", ns)
 end
 local live = { sentinel = true }
 ns.settings = live
@@ -391,7 +391,7 @@ test("strict operation schemas and malformed persisted authority fail closed", f
 end)
 
 test("single-client command workflow uses production pairing and remains isolated", function()
-    local command = commands.GUARDIANSIM
+    local command = commands.KINWARDSIM
     command("reset")
     command("family-reset")
     command("check child party read")
@@ -636,7 +636,7 @@ test("simulator clears generation-bound packets and exposes protocol revocation"
     assert(ns.SimEnqueue(sim, "parent", "child", policy(sim, "parent")))
     assert(ns.SimDeliver(sim))
     assert(#sim.queue == 0 and not child.profile.guardians.parent)
-    local command = commands.GUARDIANSIM
+    local command = commands.KINWARDSIM
     command("reset")
     command("family-reset")
     command("invite child parent 12345678")

@@ -42,7 +42,7 @@ implementations; paths named Mainline in this **Forever snapshot** are source
 components, not a substituted Retail baseline. `Blizzard_ChatFrame` depends on
 `Blizzard_ChatFrameBase` and loads TTS/transcription UI separately. Generated API
 documentation describes engine APIs; its load order is not a runtime dependency.
-Guardian still loads Settings then Core; the optional probe is staged last.
+Kinward still loads Settings then Core; the optional probe is staged last.
 Normal client order and alternate UI loading still need observation. The probe
 checks required filter/security symbols before activation; missing symbols are
 recorded as a capability failure, not replaced with legacy API guesses.
@@ -52,7 +52,7 @@ explicit activation installs four incoming filters and replaces one outgoing
 function for marker text. Stop removes filters/events and restores the send
 function only if it still owns it. Reload is required to clear taint, prefix
 registration, slash registration and any downstream cached wrappers. Probes do
-not modify GuardianDB, pair accounts, grant policy, save message bodies or reply
+not modify KinwardDB, pair accounts, grant policy, save message bodies or reply
 to incoming traffic. See cleanup details before running experiments.
 
 ## Phase gate

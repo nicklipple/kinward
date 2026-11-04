@@ -1,9 +1,9 @@
 local _, ns = ...
----@cast ns GuardianNamespace
+---@cast ns KinwardNamespace
 
----@return GuardianSimulator
+---@return KinwardSimulator
 function ns.NewSimulator()
-    ---@type GuardianSimulator
+    ---@type KinwardSimulator
     local sim = {
         now = 1000,
         delay = 0,
@@ -41,9 +41,9 @@ function ns.NewSimulator()
     return sim
 end
 
----@param sim GuardianSimulator
+---@param sim KinwardSimulator
 ---@param id string
----@return GuardianContext
+---@return KinwardContext
 function ns.SimContext(sim, id)
     local endpoint = sim.endpoints[id]
     return {
@@ -53,12 +53,12 @@ function ns.SimContext(sim, id)
     }
 end
 
----@param sim GuardianSimulator
+---@param sim KinwardSimulator
 ---@param sender string
 ---@param recipient string
 ---@param channel string Use whisper-character or whisper-account for bidirectional grants.
 ---@param direction 'read'|'send'
----@param grant GuardianGrant
+---@param grant KinwardGrant
 ---@param target? string
 ---@return boolean
 function ns.SimSend(sim, sender, recipient, channel, direction, grant, target)
@@ -95,7 +95,7 @@ function ns.SimSend(sim, sender, recipient, channel, direction, grant, target)
     return wire ~= nil and ns.SimEnqueue(sim, sender, recipient, wire)
 end
 
----@param sim GuardianSimulator
+---@param sim KinwardSimulator
 ---@param index? integer Select a packet to exercise reordering.
 ---@return boolean, string
 function ns.SimDeliver(sim, index)
@@ -133,7 +133,7 @@ function ns.SimDeliver(sim, index)
     return applied, reason
 end
 
----@param sim GuardianSimulator
+---@param sim KinwardSimulator
 ---@param sender string
 ---@param recipient string
 ---@param wire string
@@ -160,7 +160,7 @@ function ns.SimEnqueue(sim, sender, recipient, wire)
     return true
 end
 
----@param sim GuardianSimulator
+---@param sim KinwardSimulator
 ---@param sender string
 ---@param recipient string
 ---@param kind string
@@ -177,7 +177,7 @@ function ns.SimFamilySend(sim, sender, recipient, kind, arguments)
     return wire ~= nil and ns.SimEnqueue(sim, sender, recipient, wire)
 end
 
----@param sim GuardianSimulator
+---@param sim KinwardSimulator
 function ns.SimFreshFamily(sim)
     sim.familyMode = true
     sim.queue = {}
@@ -194,7 +194,7 @@ end
 
 -- Phase 4 exercises real fragmentation, receipts, retries and acknowledgements.
 -- Neither this network nor its dashboards can obtain the live profile/transport.
----@return GuardianNetworkSimulator
+---@return KinwardNetworkSimulator
 function ns.NewNetworkSimulator()
     local sim = ns.NewSimulator()
     ns.SimFreshFamily(sim)
@@ -267,7 +267,7 @@ function ns.NewNetworkSimulator()
     return network
 end
 
----@param network GuardianNetworkSimulator
+---@param network KinwardNetworkSimulator
 ---@param seconds number
 function ns.NetworkAdvance(network, seconds)
     local sim = network.sim
@@ -298,7 +298,7 @@ function ns.NetworkAdvance(network, seconds)
     end
 end
 
----@param network GuardianNetworkSimulator
+---@param network KinwardNetworkSimulator
 ---@param child string
 function ns.SimHistorySamples(network, child)
     local chat = network.chats[child]
@@ -335,7 +335,7 @@ function ns.SimHistorySamples(network, child)
 end
 
 -- This file is staged explicitly and never included in distribution manifests.
--- All state is held in this closure, with no reference to GuardianDB/ns.settings.
+-- All state is held in this closure, with no reference to KinwardDB/ns.settings.
 local active, network
 local demoDriver
 -- Explicit developer activation only. The driver advances injected fixture time;
@@ -358,8 +358,8 @@ function ns.ShowNetworkDemo()
     end
     ns.ShowDashboard(network.dashboards.parent)
 end
-SLASH_GUARDIANSIM1 = "/guardiansim"
-SlashCmdList.GUARDIANSIM = function(message)
+SLASH_KINWARDSIM1 = "/kinwardsim"
+SlashCmdList.KINWARDSIM = function(message)
     local words = {}
     for word in message:gmatch("%S+") do
         words[#words + 1] = word
@@ -374,13 +374,11 @@ SlashCmdList.GUARDIANSIM = function(message)
             end
         end
         network = ns.NewNetworkSimulator()
-        print(
-            "Guardian SIM network: isolated unpaired endpoints; receipts/acks use fault controls."
-        )
+        print("Kinward SIM network: isolated unpaired endpoints; receipts/acks use fault controls.")
         return
     elseif command == "network-pump" and network then
         ns.NetworkAdvance(network, tonumber(words[2]) or 5)
-        print("Guardian SIM network: time=" .. network.sim.now)
+        print("Kinward SIM network: time=" .. network.sim.now)
         return
     elseif command == "network" and network and network.dashboards[words[2]] then
         local input = {}
@@ -388,18 +386,18 @@ SlashCmdList.GUARDIANSIM = function(message)
             input[#input + 1] = words[i]
         end
         local d = network.dashboards[words[2]]
-        print("Guardian SIM network: " .. ns.DashboardCommand(d, table.concat(input, " ")))
+        print("Kinward SIM network: " .. ns.DashboardCommand(d, table.concat(input, " ")))
         return
     elseif command == "network-chat" and network and network.chats[words[2]] then
         if words[3] ~= "read" and words[3] ~= "send" then
-            print("Guardian SIM chat: use read or send.")
+            print("Kinward SIM chat: use read or send.")
             return
         end
         local allowed, reason = ns.ChatDecision(network.chats[words[2]], words[4] or "", words[3], {
             character = words[5],
             account = words[6],
         }, tonumber(words[7]))
-        print("Guardian SIM chat: " .. (allowed and "allowed" or "blocked") .. "; " .. reason)
+        print("Kinward SIM chat: " .. (allowed and "allowed" or "blocked") .. "; " .. reason)
         return
     elseif
         (command == "network-login" or command == "network-reload")
@@ -412,7 +410,7 @@ SlashCmdList.GUARDIANSIM = function(message)
         end
         ns.BeginSession(e.profile, words[2] .. ":" .. e.login)
         network.chats[words[2]].seen, network.chats[words[2]].order = {}, {}
-        print("Guardian SIM chat: simulated session=" .. e.profile.sessionId)
+        print("Kinward SIM chat: simulated session=" .. e.profile.sessionId)
         return
     elseif command == "network-status" and network and network.dashboards[words[2]] then
         print(ns.DashboardText(network.dashboards[words[2]]))
@@ -435,11 +433,11 @@ SlashCmdList.GUARDIANSIM = function(message)
     end
     if command == "reset" then
         active = ns.NewSimulator()
-        print("Guardian SIM: reset synthetic parent/parent2/child/child2; live state untouched.")
+        print("Kinward SIM: reset synthetic parent/parent2/child/child2; live state untouched.")
         return
     end
     if not active then
-        print("Guardian SIM: /guardiansim reset first. See docs/PHASE2_SIMULATOR.md.")
+        print("Kinward SIM: /kinwardsim reset first. See docs/PHASE2_SIMULATOR.md.")
         return
     end
     local sim = active
@@ -448,7 +446,7 @@ SlashCmdList.GUARDIANSIM = function(message)
         ns.SimFreshFamily(sim)
     elseif command == "invite" and endpoint then
         print(
-            "Guardian SIM: invited="
+            "Kinward SIM: invited="
                 .. tostring(
                     ns.FamilyInvite(
                         endpoint.family,
@@ -468,7 +466,7 @@ SlashCmdList.GUARDIANSIM = function(message)
             sim.now + endpoint.offset,
             endpoint.friends
         )
-        print("Guardian SIM: " .. tostring(ok) .. " " .. reason)
+        print("Kinward SIM: " .. tostring(ok) .. " " .. reason)
         return
     elseif command == "stop" and endpoint then
         local ok, reason = ns.FamilyReset(endpoint.family, words[3] == "confirm")
@@ -479,12 +477,12 @@ SlashCmdList.GUARDIANSIM = function(message)
                 end
             end
         end
-        print("Guardian SIM: " .. tostring(ok) .. " " .. reason)
+        print("Kinward SIM: " .. tostring(ok) .. " " .. reason)
         return
     elseif command == "pending" and endpoint then
         local pending = endpoint.family.pending
         print(
-            "Guardian SIM: pending="
+            "Kinward SIM: pending="
                 .. (pending and (pending.peer .. " " .. pending.operation) or "none")
         )
         return
@@ -506,7 +504,7 @@ SlashCmdList.GUARDIANSIM = function(message)
             arguments[#arguments + 1] = words[i]
         end
         print(
-            "Guardian SIM: queued="
+            "Kinward SIM: queued="
                 .. tostring(ns.SimFamilySend(sim, words[2], words[3], command, arguments))
         )
         return
@@ -537,7 +535,7 @@ SlashCmdList.GUARDIANSIM = function(message)
         ns.BeginSession(endpoint.profile, words[2] .. ":" .. endpoint.login)
     elseif command == "revoke" and endpoint and sim.endpoints[words[3]] then
         print(
-            "Guardian SIM: queued="
+            "Kinward SIM: queued="
                 .. tostring(
                     ns.SimFamilySend(
                         sim,
@@ -555,13 +553,13 @@ SlashCmdList.GUARDIANSIM = function(message)
             (words[5] ~= "read" and words[5] ~= "send")
             or (mode ~= "indefinite" and mode ~= "session" and mode ~= "duration")
         then
-            print("Guardian SIM: invalid grant direction/mode.")
+            print("Kinward SIM: invalid grant direction/mode.")
             return
         end
         -- Fixture command uses the recipient clock/session as the application context.
         local grant = ns.NewGrant(mode, ns.SimContext(sim, words[3]), tonumber(words[7]))
         print(
-            "Guardian SIM: queued="
+            "Kinward SIM: queued="
                 .. tostring(
                     grant ~= nil
                         and ns.SimSend(sim, words[2], words[3], words[4], words[5], grant, words[8])
@@ -571,15 +569,15 @@ SlashCmdList.GUARDIANSIM = function(message)
     elseif command == "pump" then
         local index = tonumber(words[2]) or 1
         local applied, reason = ns.SimDeliver(sim, index)
-        print("Guardian SIM: " .. tostring(applied) .. " " .. reason)
+        print("Kinward SIM: " .. tostring(applied) .. " " .. reason)
         return
     elseif command == "check" and endpoint and (words[4] == "read" or words[4] == "send") then
         local allowed, reason = ns.Evaluate(endpoint.profile, words[3], words[4], {
             character = words[5],
             account = words[6],
         }, ns.SimContext(sim, words[2]))
-        print("Guardian SIM: allowed=" .. tostring(allowed) .. " " .. reason)
+        print("Kinward SIM: allowed=" .. tostring(allowed) .. " " .. reason)
         return
     end
-    print(string.format("Guardian SIM: time=%s queued=%d; fixtures only", sim.now, #sim.queue))
+    print(string.format("Kinward SIM: time=%s queued=%d; fixtures only", sim.now, #sim.queue))
 end

@@ -1,4 +1,4 @@
-# Working on Guardian
+# Working on Kinward
 
 - Target WoW: Forever. Verify every newly introduced WoW API against the pinned
   Forever source in `reference/blizzard-ui/` or recorded client evidence.
@@ -17,7 +17,7 @@
 - Identify behavior that still requires in-game verification. Never claim the
   game client was tested unless it actually was. Consider secret values,
   protected actions, taint and combat lockdown when relevant.
-- The user has authorized development in `_retail_/Interface/AddOns/Guardian/`
+- The user has authorized development in `_retail_/Interface/AddOns/Kinward/`
   until Forever releases. This checkout is the live development addon; keep
-  edits scoped to Guardian. The target API baseline remains Forever. Do not
+  edits scoped to Kinward. The target API baseline remains Forever. Do not
   modify other addons or client files.

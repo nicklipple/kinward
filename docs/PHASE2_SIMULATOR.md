@@ -11,7 +11,7 @@ authorization logic. Use [the Phase 3 walkthrough](PHASE3_PROTOCOL.md) and
 `family-reset` for actual simulated pairing; these legacy fixtures skip it.
 There is no live route or child permission-request system.
 
-From the Guardian directory, explicitly stage the development harness:
+From the Kinward directory, explicitly stage the development harness:
 
 ```sh
 python3 scripts/phase2_simulator.py install
@@ -19,28 +19,28 @@ python3 scripts/phase2_simulator.py install
 
 The shared TOC declares Forever `16001` and Retail `120105` (the user's reported
 Retail build is `70783`). After an interface/TOC change, fully exit and restart
-the game so addon discovery rescans the files. Enable Guardian, then run:
+the game so addon discovery rescans the files. Enable Kinward, then run:
 
 ```text
-/guardiansim reset
-/guardiansim check child party read
-/guardiansim grant parent child party read duration 900
-/guardiansim pump
-/guardiansim check child party read
-/guardiansim check child party send
-/guardiansim check child2 party read
-/guardiansim advance 900
-/guardiansim check child party read
-/guardiansim grant parent2 child whisper-character read indefinite 0 Friend-TestRealm
-/guardiansim pump
-/guardiansim check child whisper send Friend-TestRealm
+/kinwardsim reset
+/kinwardsim check child party read
+/kinwardsim grant parent child party read duration 900
+/kinwardsim pump
+/kinwardsim check child party read
+/kinwardsim check child party send
+/kinwardsim check child2 party read
+/kinwardsim advance 900
+/kinwardsim check child party read
+/kinwardsim grant parent2 child whisper-character read indefinite 0 Friend-TestRealm
+/kinwardsim pump
+/kinwardsim check child whisper send Friend-TestRealm
 ```
 
 The first check is false, applied party read becomes true, send/other child stay
 false, and read expires after 900 seconds. The explicit whisper grant works in
-both directions. Every output is labeled `Guardian SIM`. Account-whisper fixtures
+both directions. Every output is labeled `Kinward SIM`. Account-whisper fixtures
 use `whisper-account` with target `friend`; checks require both
-`Friend-TestRealm friend`. The guardian fixture is `Guardian-TestRealm parent`.
+`Friend-TestRealm friend`. The guardian fixture is `Kinward-TestRealm parent`.
 No text bodies or personal account information are used.
 
 `grant SENDER RECIPIENT CHANNEL read|send MODE [SECONDS] [TARGET]` uses
@@ -52,7 +52,7 @@ This is a simulator convention, not a delivery-start promise for the future UI.
 
 Transport and lifecycle controls:
 
-| Command after `/guardiansim` | Effect |
+| Command after `/kinwardsim` | Effect |
 | --- | --- |
 | `delay 10` | Set delay in seconds for future packets. |
 | `advance 10` | Advance shared time, including while endpoints are disconnected. |
@@ -71,7 +71,7 @@ deduplication and acknowledgements through shared production logic. Duplicate
 writes do not reapply; distinct writes use arrival order. Retry/backoff and
 per-setting revisions remain Phase 4 work. Parent and child
 profiles, including extra fixtures, share no policy tables. The harness never
-reads/writes `GuardianDB` or `ns.settings`, never calls live transport, and stores
+reads/writes `KinwardDB` or `ns.settings`, never calls live transport, and stores
 nothing across a real UI reload. `reload`/`login` commands discard transient pairing/sends while preserving durable
 protocol state, and simulate lifecycle;
 they are not measurements of the actual client lifecycle.
@@ -101,7 +101,7 @@ production fragmentation, receipts and delayed/lost application replies. See
 retain their existing simulator; the two models never share live state.
 
 
-With the harness staged, `/guardian demo` opens the visual single-session demo.
+With the harness staged, `/kinward demo` opens the visual single-session demo.
 Endpoint-switch buttons and automatic time advancement replace manual pumping
 for interactive testing. The Family and Permissions tabs use production pairing,
 confirmation and policy actions; outage buttons test loss and expiry. See the
@@ -126,6 +126,6 @@ approvals](PHASE6_REQUESTS.md) for offline, expiry, cancellation and approval de
 
 Phase 7 adds a guardian-only Activity tab with per-child filtering and cursor
 catchup. Add sample chat injects synthetic accessible messages into the selected
-fixture child's production history model, never live chat or GuardianDB.
+fixture child's production history model, never live chat or KinwardDB.
 Connection retains diagnostics. [The history walkthrough](PHASE7_HISTORY.md)
 covers privacy, outages, retention and revocation during transfer.

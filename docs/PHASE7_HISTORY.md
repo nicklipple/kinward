@@ -53,7 +53,7 @@ changed text, late echoes and uncovered paths can remain uncorrelated. No univer
 once-per-physical-message claim is made beyond the supported dedup/correlation
 window. Local observed output never proves remote receipt.
 
-Party self echoes require `GuardianChatIO.selfCharacter()` to supply a verified
+Party self echoes require `KinwardChatIO.selfCharacter()` to supply a verified
 current character-realm key. The boundary normalizes it, guards inaccessible
 values and compares it with accessible sender identity. Self echoes feed outgoing
 observation even if party read is closed; other party members feed incoming
@@ -85,7 +85,7 @@ schema-1 fields are additive:
 - Child `history`: relationship generation, bounded record array, monotonically
   increasing `high`, cumulative count-pruned/expired totals, retention seconds,
   maximum rows and last monitoring heartbeat.
-- Guardian `childProfiles[peer].history`: validated received records plus durable
+- Kinward `childProfiles[peer].history`: validated received records plus durable
   catchup cursor, source high watermark/loss totals/configuration, last fetch and
   separate local cache-removal count.
 
@@ -179,7 +179,7 @@ count and absolute deadline. It changes retention, not chat permission or policy
 revision. The UI uses a 60-second delivery deadline. Metadata from later batches
 shows the child's applied limits; queued configuration is not shown as applied.
 
-## Guardian and child UI
+## Kinward and child UI
 
 Activity is visible only on guardian dashboards. It displays twenty matching
 records per page, newest by time, then sequence. Controls cycle channel,
@@ -193,7 +193,7 @@ Connection retains diagnostic states without message bodies.
 Child dashboards show whether monitoring is active on supported routes; they do
 not create an Activity view with their retained source text. Hidden Activity text
 is cleared for child roles. The sender-only request prompt never consumes a body.
-Diagnostic `/guardian`/Connection and synthetic injection do not print hidden
+Diagnostic `/kinward`/Connection and synthetic injection do not print hidden
 history. Source history still exists in local SavedVariables: this cooperative
 addon does not prevent inspecting or modifying local files/addon code.
 
@@ -213,7 +213,7 @@ new library or runtime service were introduced.
 ## One-client walkthrough
 
 1. Stage with `python3 scripts/phase2_simulator.py install`, reload, then
-   `/guardian demo`. Pair parent/child with Family and sync as in Phase 4.
+   `/kinward demo`. Pair parent/child with Family and sync as in Phase 4.
 2. On parent, select child and open **Activity**. Click **Add sample chat**, then
    **Refresh history**. Synthetic party/whisper lines, a send disposition and a
    gap appear after transport ticks. The fixture clock is synthetic, so rendered
@@ -237,7 +237,7 @@ run checks/package. Staged development files are rejected for distribution.
 Strict Lua 5.1 scenarios exercise allowed/blocked reads, pre-send attempts and
 correlation, real candidate callback boundaries with throwing secret sentinels,
 intervals, retention/count bounds, malformed persistence/protocol, cursor resume,
-loss/duplicates/reconnect, authorized-only access, queued revocation, child/guardian
+loss/duplicates/reconnect, authorized-only access, queued revocation, child/kinward
 isolation, control priority/capacity and actual Activity widget handlers. Prior
 phase suites, formatting, zero-diagnostic LuaLS and manifest checks remain required.
 The package contains runtime files only. These tests cannot establish engine
@@ -252,3 +252,29 @@ prompts, debug output, TTS or other accessible surfaces. Check actual lockdown,
 errors/taint/protected actions and all known uncovered routes. Mark unavailable
 coverage explicitly and record Forever and Retail results separately in
 PHASE1_RESULTS.md. **No such client result is claimed by Phase 7 implementation.**
+
+## Activity chat presentation
+
+Activity renders each page in chronological chat order, with date separators,
+short timestamps, channel colors and sender/recipient prefixes. Blocked reads,
+blocked sends, send attempts, local output and capture gaps keep explicit labels;
+local output still does not establish delivery. Captured text escapes pipes and
+flattens line breaks before trusted color markup is applied. Paging and filters
+still operate over the same retained history.
+
+The font object `ChatFontNormal` is evidenced in the pinned Forever source at
+`Interface/AddOns/Blizzard_ChatFrameBase/Mainline/ChatFrameEditBox.xml` and
+`ChatFrameOverrides.lua`. The dark chat background uses the existing evidenced
+texture methods. Actual font rendering, wrapping and scrolling require client
+verification.
+
+The channel filter uses WoW's native `DropdownButton` with
+`WowStyle1DropdownTemplate`: click to open the channel list, then select any
+channel directly. The selected channel appears on the control and changing it
+resets history paging. Other filters and conversation search remain active.
+The native menu owns selection indicators, dismissal and keyboard behavior.
+Pinned Forever evidence: `Blizzard_Menu/11_0_0_MenuImplementationGuide.lua`
+(CreateFrame example, radio selection and automatic selection text),
+`Blizzard_Menu/DropdownButton.lua` (`SetupMenu`), and
+`Blizzard_ChatFrame/Shared/TextToSpeechFrame.lua` (`CreateRadio` usage).
+Actual dropdown placement and interaction still require in-game verification.

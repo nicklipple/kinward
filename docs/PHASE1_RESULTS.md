@@ -56,11 +56,11 @@ with the user. No mocks, interface number or matching source names close them.
 
 ## Retail development loading metadata — 2026-11-03
 
-User observed Guardian as "incompatible" in the Retail addon list while its
+User observed Kinward as "incompatible" in the Retail addon list while its
 manifest declared only Forever `16001`. User ran `GetBuildInfo()` and reported
 return 2 = `70783`, return 4 = `120105`. The shared TOC now declares
 `16001, 120105`. Retail version 12.1.5 is also recorded in the local `.build.info`.
-The user subsequently confirmed `/guardian` works in the Retail client after
+The user subsequently confirmed `/kinward` works in the Retail client after
 this correction. This establishes user-observed loading/slash-command behavior
 only; the simulator and live chat adapters have not yet been verified in-game.
 This is Retail metadata evidence only; no Forever runtime gate is closed.
@@ -68,7 +68,7 @@ This is Retail metadata evidence only; no Forever runtime gate is closed.
 
 ## Retail Phase 2 simulator feedback — 2026-11-03
 
-After confirming `/guardian` loaded, the user received an in-game simulator
+After confirming `/kinward` loaded, the user received an in-game simulator
 checklist for closed defaults, party read/send independence, second-child
 isolation, duration expiry, simulated reload/login expiry, and bidirectional
 character whispers. The user responded "lgtm" and reported no errors or

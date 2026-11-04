@@ -1,5 +1,5 @@
 local _, ns = ...
----@cast ns GuardianNamespace
+---@cast ns KinwardNamespace
 
 local events = {
     CHAT_MSG_WHISPER = "whisper",
@@ -89,10 +89,10 @@ end
 ---Candidate only. The caller must establish P1-IN/OUT/ID/SESSION first.
 ---Install on own ADDON_LOADED, after normalization, before chat is available.
 ---No slash/saved-variable bypass of this gate; Core has no verified bootstrap yet.
----@param profile GuardianSettings
----@param io GuardianChatIO
+---@param profile KinwardSettings
+---@param io KinwardChatIO
 ---@param verified boolean Recorded acceptance, never an end-user preference.
----@return GuardianWoWChat?, string
+---@return KinwardWoWChat?, string
 function ns.NewWoWChat(profile, io, verified)
     if not verified then
         return nil, "chat-client-unverified"
@@ -119,7 +119,7 @@ function ns.NewWoWChat(profile, io, verified)
         return nil
     end
     ---@param name unknown
-    ---@return GuardianIdentity?
+    ---@return KinwardIdentity?
     local function identity(name)
         accounts = {} -- Never reuse a mapping after an alt/friendship change.
         if not canaccessvalue(name) or type(name) ~= "string" then
@@ -181,9 +181,9 @@ function ns.NewWoWChat(profile, io, verified)
                 io.prompt(chat.prompt.character)
             else
                 print(
-                    "Guardian: blocked whisper from "
+                    "Kinward: blocked whisper from "
                         .. chat.prompt.character
-                        .. ". Open /guardian ui to request access."
+                        .. ". Open /kinward ui to request access."
                 )
             end
         end
@@ -207,7 +207,7 @@ function ns.NewWoWChat(profile, io, verified)
             local now = GetServerTime()
             if now >= nextNotice then
                 nextNotice = now + 2
-                print("Guardian: this send was blocked by your current chat permissions.")
+                print("Kinward: this send was blocked by your current chat permissions.")
             end
             return
         end

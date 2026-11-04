@@ -1,8 +1,8 @@
 ## Interface: 16001, 120105
-## Title: Guardian
+## Title: Kinward
 ## Notes: Forever policy foundation; live enforcement pending.
 ## Version: 0.1.0
-## SavedVariables: GuardianDB
+## SavedVariables: KinwardDB
 Policy.lua
 Profile.lua
 Session.lua

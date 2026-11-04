@@ -20,7 +20,7 @@ setmetatable(env, {
         error("Unexpected global: " .. k)
     end,
     __newindex = function(t, k, v)
-        assert(k == "SLASH_GUARDIANSIM1", "Unexpected global write: " .. k)
+        assert(k == "SLASH_KINWARDSIM1", "Unexpected global write: " .. k)
         rawset(t, k, v)
     end,
 })
@@ -42,7 +42,7 @@ for _, f in ipairs({
     "WoWChat.lua",
     "scripts/probes/Phase2Simulator.lua",
 }) do
-    setfenv(assert(loadfile(f)), env)("Guardian", ns)
+    setfenv(assert(loadfile(f)), env)("Kinward", ns)
 end
 local passed = 0
 local function test(name, body)
@@ -602,6 +602,22 @@ local function withWidgets(body)
         end
         function methods:GetStringHeight()
             return 700
+        end
+        function methods:SetupMenu(generator)
+            assert(self.kind == "DropdownButton")
+            local entries = {}
+            local root = {}
+            function root:CreateRadio(caption, isSelected, setSelected)
+                entries[#entries + 1] =
+                    { caption = caption, isSelected = isSelected, setSelected = setSelected }
+            end
+            generator(self, root)
+            self.menu = entries
+            for _, entry in ipairs(entries) do
+                if entry.isSelected() then
+                    self.value = entry.caption
+                end
+            end
         end
         function methods:SetScrollChild(child)
             self.child = child

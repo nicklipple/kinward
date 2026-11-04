@@ -1,5 +1,5 @@
 local _, ns = ...
----@cast ns GuardianNamespace
+---@cast ns KinwardNamespace
 
 local function identifier(value)
     return type(value) == "string" and #value > 0 and #value <= 128
@@ -221,7 +221,7 @@ local function validFamilyState(settings)
 end
 
 ---@param saved unknown
----@return GuardianSettings
+---@return KinwardSettings
 function ns.NormalizeSettings(saved)
     -- nil and the old enabled-only scaffold are the only fresh-profile migrations.
     local settings = type(saved) == "table" and saved or {}

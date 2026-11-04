@@ -1,9 +1,9 @@
 local _, ns = ...
----@cast ns GuardianNamespace
+---@cast ns KinwardNamespace
 
 ---The adapter must supply the same token for reload and a fresh token for login.
 ---No live lifecycle inference is made until the Phase 1 client gate is verified.
----@param profile GuardianSettings
+---@param profile KinwardSettings
 ---@param sessionId string
 ---@return boolean
 function ns.BeginSession(profile, sessionId)
@@ -15,9 +15,9 @@ function ns.BeginSession(profile, sessionId)
 end
 
 ---@param mode 'indefinite'|'duration'|'session'
----@param context GuardianContext
+---@param context KinwardContext
 ---@param seconds? number
----@return GuardianGrant?
+---@return KinwardGrant?
 function ns.NewGrant(mode, context, seconds)
     if mode == "indefinite" then
         return { mode = mode }

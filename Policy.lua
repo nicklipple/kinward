@@ -1,5 +1,5 @@
 local _, ns = ...
----@cast ns GuardianNamespace
+---@cast ns KinwardNamespace
 
 ---A character key always includes an explicit realm; no local-realm inference.
 ---@param name unknown
@@ -28,8 +28,8 @@ function ns.CharacterKey(name, realm)
     return string.lower(character .. "-" .. server)
 end
 
----@param grant GuardianGrant?
----@param context GuardianContext
+---@param grant KinwardGrant?
+---@param context KinwardContext
 ---@return boolean
 function ns.GrantActive(grant, context)
     if not ns.ValidGrant(grant) then
@@ -40,11 +40,11 @@ function ns.GrantActive(grant, context)
         or (grant.mode == "session" and context.sessionId == grant.sessionId)
 end
 
----@param profile GuardianSettings
+---@param profile KinwardSettings
 ---@param channel string Stable channel key, never a transient channel number.
 ---@param direction 'read'|'send'
----@param identity GuardianIdentity?
----@param context GuardianContext Verified mappings must come from the identity adapter.
+---@param identity KinwardIdentity?
+---@param context KinwardContext Verified mappings must come from the identity adapter.
 ---@return boolean, string
 function ns.Evaluate(profile, channel, direction, identity, context)
     if direction ~= "read" and direction ~= "send" then
@@ -85,7 +85,7 @@ function ns.Evaluate(profile, channel, direction, identity, context)
 end
 
 ---Control bypass is for a future authenticated adapter, never arbitrary chat.
----@param profile GuardianSettings
+---@param profile KinwardSettings
 ---@param verifiedAccount string Transport-verified identity, not a payload field.
 ---@param generation string
 ---@return boolean

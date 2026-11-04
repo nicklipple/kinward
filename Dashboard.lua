@@ -1,11 +1,11 @@
 local _, ns = ...
----@cast ns GuardianNamespace
+---@cast ns KinwardNamespace
 
----@param profile GuardianSettings
----@param transport? GuardianTransport
+---@param profile KinwardSettings
+---@param transport? KinwardTransport
 ---@param now? fun(): number
----@param chat? GuardianChat
----@return GuardianDashboard
+---@param chat? KinwardChat
+---@return KinwardDashboard
 function ns.NewDashboard(profile, transport, now, chat)
     return {
         profile = profile,
@@ -18,7 +18,7 @@ function ns.NewDashboard(profile, transport, now, chat)
     }
 end
 
----@param d GuardianDashboard
+---@param d KinwardDashboard
 ---@param message string
 ---@return string
 function ns.DashboardCommand(d, message)
@@ -83,7 +83,7 @@ function ns.DashboardCommand(d, message)
             tostring(r.baseRevision),
         })
     elseif not t then
-        result = "Live routing/identity gate is open. Use the staged /guardiansim network harness. "
+        result = "Live routing/identity gate is open. Use the staged /kinwardsim network harness. "
             .. result
     elseif w[1] == "invite" and w[2] and w[3] then
         result = ns.FamilyInvite(t.family, w[2], w[3], t.io.now())
@@ -135,12 +135,12 @@ function ns.DashboardCommand(d, message)
     return result
 end
 
----@param d GuardianDashboard
+---@param d KinwardDashboard
 ---@return string
 function ns.DashboardText(d)
     local p, t = d.profile, d.transport
     local lines = {
-        "Guardian — " .. p.role .. "; supervision: " .. p.supervision,
+        "Kinward — " .. p.role .. "; supervision: " .. p.supervision,
         t
                 and "Transport connected to an injected endpoint. Live chat enforcement remains client-gated."
             or "Live transport gated: identity and routing require two-account verification.",
@@ -239,7 +239,7 @@ end
 
 -- Button actions keep input fields separate; spaces in realm names are never
 -- reinterpreted as command delimiters. Destructive confirmations capture args.
----@param d GuardianDashboard
+---@param d KinwardDashboard
 ---@param kind string
 ---@param args string[]
 ---@return string
@@ -318,9 +318,14 @@ local channels = {
     { "guild", "Guild" },
     { "raid", "Raid" },
     { "instance", "Instance" },
+    { "channel:general", "General" },
+    { "channel:lookingforgroup", "Looking For Group" },
+    { "channel:trade", "Trade" },
+    { "channel:services", "Trade (Services)" },
+    { "channel:localdefense", "Local Defense" },
 }
 
----@param d GuardianDashboard
+---@param d KinwardDashboard
 ---@param child? string
 ---@param channel string
 ---@param direction 'read'|'send'
@@ -418,7 +423,7 @@ end
 
 -- Lazy construction keeps widgets out of loading/SavedVariables setup. One
 -- window is retained per model; hidden frames do not run OnUpdate in WoW.
----@param d GuardianDashboard
+---@param d KinwardDashboard
 ---@param section? string
 function ns.ShowDashboard(d, section)
     if d.window then
@@ -484,7 +489,7 @@ function ns.ShowDashboard(d, section)
         return child
     end
     background(frame, 0.025, 0.035, 0.055)
-    label(frame, 20, 18, 150, "GUARDIAN", "GameFontNormal")
+    label(frame, 20, 18, 150, "KINWARD", "GameFontNormal")
     local identity = label(frame, 180, 18, 650, "")
     button(frame, 866, 12, 74, "Close", function()
         frame:Hide()
@@ -555,72 +560,156 @@ function ns.ShowDashboard(d, section)
         panel(224, 162, 716, 450),
         panel(224, 162, 716, 450)
     local selection = label(permissions, 14, 12, 680, "", "GameFontNormal")
-    label(permissions, 150, 42, 190, "READ incoming", "GameFontHighlightSmall")
-    label(permissions, 410, 42, 260, "SEND outgoing", "GameFontHighlightSmall")
+    local permissionUI =
+        { section = "channels", page = 1, contacts = {}, peer = "", generation = "" }
+    permissionUI.channels = CreateFrame("Frame", nil, permissions)
+    permissionUI.channels:SetPoint("TOPLEFT", 0, -76)
+    permissionUI.channels:SetSize(716, 370)
+    permissionUI.whispers = CreateFrame("Frame", nil, permissions)
+    permissionUI.whispers:SetPoint("TOPLEFT", 0, -76)
+    permissionUI.whispers:SetSize(716, 370)
+    permissionUI.channelTab = button(permissions, 14, 40, 160, "Chat channels", function()
+        permissionUI.section = "channels"
+    end)
+    permissionUI.whisperTab = button(permissions, 184, 40, 190, "Whisper contacts", function()
+        permissionUI.section = "whispers"
+    end)
+    label(permissionUI.channels, 150, 0, 190, "READ incoming", "GameFontHighlightSmall")
+    label(permissionUI.channels, 410, 0, 260, "SEND outgoing", "GameFontHighlightSmall")
+    label(
+        permissionUI.channels,
+        14,
+        334,
+        680,
+        "Public channel settings are saved permissions; live coverage is unverified.",
+        "GameFontHighlightSmall"
+    )
+    permissionUI.scroll =
+        CreateFrame("ScrollFrame", nil, permissionUI.channels, "UIPanelScrollFrameTemplate")
+    permissionUI.scroll:SetPoint("TOPLEFT", 0, -26)
+    permissionUI.scroll:SetSize(682, 298)
+    permissionUI.body = CreateFrame("Frame", nil, permissionUI.scroll)
+    permissionUI.body:SetSize(674, #channels * 40)
+    permissionUI.scroll:SetScrollChild(permissionUI.body)
     local rows = {}
     for i, spec in ipairs(channels) do
         local channel = spec[1]
-        local y = 68 + (i - 1) * 40
-        label(permissions, 14, y + 5, 120, spec[2])
+        local y = (i - 1) * 40
+        label(permissionUI.body, 14, y + 5, 130, spec[2])
         for j, direction in ipairs({ "read", "send" }) do
             local x = 150 + (j - 1) * 260
-            local state = label(permissions, x, y + 5, 85, "Unknown", "GameFontHighlightSmall")
+            local state =
+                label(permissionUI.body, x, y + 5, 85, "Unknown", "GameFontHighlightSmall")
             local buttons = {}
             for k, verb in ipairs({ "Allow", "Block" }) do
                 local mode = k == 1 and "indefinite" or "revoke"
-                buttons[k] = button(permissions, x + 88 + (k - 1) * 59, y, 56, verb, function()
-                    ns.DashboardAction(
-                        d,
-                        "policy",
-                        { d.selectedChild or "", channel, direction, mode, "", "", "" }
-                    )
-                end)
+                buttons[k] = button(
+                    permissionUI.body,
+                    x + 88 + (k - 1) * 59,
+                    y,
+                    56,
+                    verb,
+                    function()
+                        ns.DashboardAction(
+                            d,
+                            "policy",
+                            { d.selectedChild or "", channel, direction, mode, "", "", "" }
+                        )
+                    end
+                )
             end
             rows[#rows + 1] =
                 { channel = channel, direction = direction, state = state, buttons = buttons }
         end
     end
     label(
-        permissions,
+        permissionUI.whispers,
         14,
-        316,
+        226,
         680,
         "WHISPERS · permission applies to both read and send",
         "GameFontNormal"
     )
     label(
-        permissions,
+        permissionUI.whispers,
         14,
-        343,
+        253,
         260,
         "Character-Realm or verified BattleTag",
         "GameFontHighlightSmall"
     )
-    local whisperTarget = input(permissions, 18, 365, 245)
+    local whisperTarget = input(permissionUI.whispers, 18, 275, 245)
     local whisperKind = "whisper-character"
-    local characterButton = button(permissions, 280, 366, 100, "Character", function()
+    local characterButton = button(permissionUI.whispers, 280, 276, 100, "Character", function()
         whisperKind = "whisper-character"
     end)
-    local accountButton = button(permissions, 386, 366, 100, "Account", function()
+    local accountButton = button(permissionUI.whispers, 386, 276, 100, "Account", function()
         whisperKind = "whisper-account"
     end)
     local whisperButtons = {}
     for i, verb in ipairs({ "Allow", "Block" }) do
         local mode = i == 1 and "indefinite" or "revoke"
-        whisperButtons[i] = button(permissions, 506 + (i - 1) * 90, 366, 84, verb, function()
-            ns.DashboardAction(d, "policy", {
-                d.selectedChild or "",
-                whisperKind,
-                "read",
-                mode,
-                "",
-                "",
-                whisperTarget:GetText(),
-            })
-        end)
+        whisperButtons[i] = button(
+            permissionUI.whispers,
+            506 + (i - 1) * 90,
+            276,
+            84,
+            verb,
+            function()
+                ns.DashboardAction(d, "policy", {
+                    d.selectedChild or "",
+                    whisperKind,
+                    "read",
+                    mode,
+                    "",
+                    "",
+                    whisperTarget:GetText(),
+                })
+            end
+        )
     end
-    local whisperState =
-        label(permissions, 14, 406, 680, "Enter a whisper target.", "GameFontHighlightSmall")
+    local whisperState = label(
+        permissionUI.whispers,
+        14,
+        316,
+        680,
+        "Enter a whisper target.",
+        "GameFontHighlightSmall"
+    )
+    label(
+        permissionUI.whispers,
+        14,
+        344,
+        680,
+        "Current guardians always have whisper access through their verified account.",
+        "GameFontHighlightSmall"
+    )
+    permissionUI.summary = label(permissionUI.whispers, 14, 0, 680, "", "GameFontHighlightSmall")
+    permissionUI.contactRows = {}
+    for i = 1, 5 do
+        local row = { channel = "", target = "" }
+        row.control = button(permissionUI.whispers, 14, 28 + (i - 1) * 30, 680, "", function()
+            whisperKind = row.channel
+            whisperTarget:SetText(row.target)
+        end)
+        permissionUI.contactRows[i] = row
+    end
+    permissionUI.previous = button(
+        permissionUI.whispers,
+        14,
+        184,
+        110,
+        "Previous contacts",
+        function()
+            permissionUI.page = math.max(1, permissionUI.page - 1)
+        end
+    )
+    permissionUI.next = button(permissionUI.whispers, 134, 184, 110, "Next contacts", function()
+        permissionUI.page = permissionUI.page + 1
+    end)
+    button(permissionUI.whispers, 514, 184, 180, "Add whisper contact", function()
+        whisperTarget:SetText("")
+    end)
     local refreshPairing = ns.NewPairingPanel(
         d,
         family,
@@ -1094,6 +1183,95 @@ function ns.ShowDashboard(d, section)
                 control:SetEnabled(canEdit)
             end
         end
+        permissionUI.channelTab:SetEnabled(permissionUI.section ~= "channels")
+        permissionUI.whisperTab:SetEnabled(permissionUI.section ~= "whispers")
+        if permissionUI.section == "channels" then
+            permissionUI.channels:Show()
+            permissionUI.whispers:Hide()
+        else
+            permissionUI.channels:Hide()
+            permissionUI.whispers:Show()
+        end
+        if
+            permissionUI.peer ~= (d.selectedChild or "")
+            or permissionUI.generation ~= (view and view.generation or p.generation)
+        then
+            permissionUI.peer = d.selectedChild or ""
+            permissionUI.generation = view and view.generation or p.generation
+            permissionUI.page = 1
+            whisperTarget:SetText("")
+        end
+        local contacts = {}
+        if p.role == "guardian" then
+            for key in pairs(view and view.settings or {}) do
+                local channel, target = key:match("^(whisper%-[^/]+)/[^/]+/(.+)$")
+                if channel and target then
+                    contacts[channel .. ":" .. target] = { channel = channel, target = target }
+                end
+            end
+            for _, item in ipairs(t and t.work or {}) do
+                if
+                    item.peer == d.selectedChild
+                    and item.kind == "policy"
+                    and not item.reply
+                    and (item.state == "pending" or item.state == "delivered")
+                then
+                    local fields = ns.DecodeMessage(item.wire)
+                    if fields and fields[6]:find("^whisper%-") then
+                        local target = fields[6] == "whisper-character"
+                                and ns.CharacterKey(fields[11])
+                            or fields[11]
+                        if target then
+                            contacts[fields[6] .. ":" .. target] =
+                                { channel = fields[6], target = target }
+                        end
+                    end
+                end
+            end
+        else
+            for _, grant in pairs(p.policy.whispers) do
+                contacts[grant.kind .. ":" .. grant.target] =
+                    { channel = "whisper-" .. grant.kind, target = grant.target }
+            end
+        end
+        local contactList = {}
+        for _, contact in pairs(contacts) do
+            contactList[#contactList + 1] = contact
+        end
+        table.sort(contactList, function(a, b)
+            return a.target == b.target and a.channel < b.channel or a.target < b.target
+        end)
+        local pages = math.max(1, math.ceil(#contactList / 5))
+        permissionUI.page = math.min(permissionUI.page, pages)
+        permissionUI.summary:SetText(
+            plain(
+                #contactList > 0
+                        and (#contactList .. " saved contacts · page " .. permissionUI.page .. "/" .. pages .. " · select a contact to edit")
+                    or "No saved whisper contacts. Sync the child to fetch their permissions."
+            )
+        )
+        for i, row in ipairs(permissionUI.contactRows) do
+            local contact = contactList[(permissionUI.page - 1) * 5 + i]
+            if contact then
+                row.channel, row.target = contact.channel, contact.target
+                local state =
+                    ns.DashboardPermission(d, d.selectedChild, row.channel, "read", row.target)
+                row.control:SetText(
+                    plain(
+                        row.target
+                            .. " · "
+                            .. (row.channel == "whisper-account" and "Account" or "Character")
+                            .. " · "
+                            .. state
+                    )
+                )
+                row.control:Show()
+            else
+                row.control:Hide()
+            end
+        end
+        permissionUI.previous:SetEnabled(permissionUI.page > 1)
+        permissionUI.next:SetEnabled(permissionUI.page < pages)
         characterButton:SetEnabled(whisperKind ~= "whisper-character")
         accountButton:SetEnabled(whisperKind ~= "whisper-account")
         local target = whisperTarget:GetText()

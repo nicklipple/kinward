@@ -54,7 +54,7 @@ lengths and inaccessible types are rejected. At least five fields are required:
 | `pair` | Code. Must match intended peer and active invitation, with generation marker `pairing`. |
 | `policy` | Channel, `read/send`, grant mode (or `revoke`), absolute expiry or empty, session token or empty, whisper target or empty. `revoke` removes that setting and requires empty expiry/session fields. |
 | `add` | Intended guardian, exact pending pairing operation ID, literal `confirm`. |
-| `remove` | Guardian to remove, literal `confirm`; use `stop` for the last guardian. |
+| `remove` | Kinward to remove, literal `confirm`; use `stop` for the last guardian. |
 | `history` | None. Returns an authorization result only; records arrive in Phase 7. |
 | `sync` | None. Current guardians can discover the child's current generation even if their saved generation is stale. |
 | `ack` | Result string. Response only, never a command. |
@@ -71,7 +71,7 @@ with a new invitation without knowing the new generation.
 A response is accepted only from the intended transport peer for an outstanding
 operation with matching sequence (and matching generation for acknowledgements).
 Replies cannot execute commands. Out-of-order replies cannot replace newer
-per-child status. Guardian child records contain generation and result, not
+per-child status. Kinward child records contain generation and result, not
 shared policy tables. Pending/delivered/retried UI states remain Phase 4 work.
 
 The child persists a sliding 64-operation replay window per guardian in the
@@ -122,7 +122,7 @@ SavedVariables modification by a cooperative child.
 
 ## One-client walkthrough
 
-Use the same staging tool as Phase 2, from the Guardian directory:
+Use the same staging tool as Phase 2, from the Kinward directory:
 
 ```sh
 python3 scripts/phase2_simulator.py install
@@ -131,22 +131,22 @@ python3 scripts/phase2_simulator.py install
 Restart/reload the client as described in [Phase 2](PHASE2_SIMULATOR.md). Run:
 
 ```text
-/guardiansim reset
-/guardiansim family-reset
-/guardiansim check child party read
-/guardiansim invite child parent 12345678
-/guardiansim pair parent child 12345678
-/guardiansim pump
-/guardiansim pending child
-/guardiansim confirm child parent parent:1 confirm
-/guardiansim check child party read
-/guardiansim sync parent child
-/guardiansim pump
-/guardiansim grant parent child party read indefinite
-/guardiansim pump
-/guardiansim check child party read
-/guardiansim check child party send
-/guardiansim check child2 party read
+/kinwardsim reset
+/kinwardsim family-reset
+/kinwardsim check child party read
+/kinwardsim invite child parent 12345678
+/kinwardsim pair parent child 12345678
+/kinwardsim pump
+/kinwardsim pending child
+/kinwardsim confirm child parent parent:1 confirm
+/kinwardsim check child party read
+/kinwardsim sync parent child
+/kinwardsim pump
+/kinwardsim grant parent child party read indefinite
+/kinwardsim pump
+/kinwardsim check child party read
+/kinwardsim check child party send
+/kinwardsim check child2 party read
 ```
 
 Fresh `child` starts unrestricted. `pending` shows `parent parent:1`; pairing
@@ -157,26 +157,26 @@ without `family-reset` still supplies pre-paired Phase 2 fixtures.
 Continue with a second guardian:
 
 ```text
-/guardiansim invite child parent2 87654321
-/guardiansim pair parent2 child 87654321
-/guardiansim pump
-/guardiansim pending child
-/guardiansim confirm child parent2 parent2:1 confirm
-/guardiansim add parent child parent2 parent2:1 confirm
-/guardiansim pump
-/guardiansim sync parent2 child
-/guardiansim pump
-/guardiansim remove parent2 child parent confirm
-/guardiansim pump
-/guardiansim history parent child
-/guardiansim pump
-/guardiansim sync parent2 child
-/guardiansim pump
-/guardiansim remove parent2 child parent2 confirm
-/guardiansim pump
-/guardiansim remove parent2 child parent2 stop
-/guardiansim pump
-/guardiansim check child party send
+/kinwardsim invite child parent2 87654321
+/kinwardsim pair parent2 child 87654321
+/kinwardsim pump
+/kinwardsim pending child
+/kinwardsim confirm child parent2 parent2:1 confirm
+/kinwardsim add parent child parent2 parent2:1 confirm
+/kinwardsim pump
+/kinwardsim sync parent2 child
+/kinwardsim pump
+/kinwardsim remove parent2 child parent confirm
+/kinwardsim pump
+/kinwardsim history parent child
+/kinwardsim pump
+/kinwardsim sync parent2 child
+/kinwardsim pump
+/kinwardsim remove parent2 child parent2 confirm
+/kinwardsim pump
+/kinwardsim remove parent2 child parent2 stop
+/kinwardsim pump
+/kinwardsim check child party send
 ```
 
 The local second confirmation reports `guardian-approval-required`. The `add`
@@ -199,7 +199,7 @@ same policy protocol. Repeat pairing with `child2` to test independent guardian 
 120 seconds before confirmation to test expiry; send a wrong code five times to
 test lockout; revoke a guardian with delayed work queued to test invalidation.
 All controls affect isolated memory. They never send live addon messages or
-read/write `GuardianDB` or live namespace settings. No Phase 3 client walkthrough
+read/write `KinwardDB` or live namespace settings. No Phase 3 client walkthrough
 has been run by the implementation agent.
 
 After use:

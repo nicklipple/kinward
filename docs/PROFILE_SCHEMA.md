@@ -1,6 +1,6 @@
 # Account profile schema 1
 
-`GuardianDB` is initialized only on Guardian's `ADDON_LOADED`. `Profile.lua`
+`KinwardDB` is initialized only on Kinward's `ADDON_LOADED`. `Profile.lua`
 normalizes persisted data; `Policy.lua` and `Session.lua` have no WoW calls.
 The account-wide profile is shared by all local characters. `enabled` remains a
 legacy preference and never bypasses supervised policy evaluation.
@@ -58,7 +58,7 @@ chat. Phase 1 live evidence and Phases 4–5 remain required before enforcement.
 
 
 Phase 4 adds optional `policyRevision` (nonnegative bounded integer) and replay
-entry `revision` values, retaining schema 1 compatibility. Guardian child records
+entry `revision` values, retaining schema 1 compatibility. Kinward child records
 may cache `revision`, current `members` (at most eight) and `settings` (at most
 128 typed grant/revocation views with child revisions). These are display data,
 not authority. Malformed caches enter recovery consistently with other malformed
@@ -87,7 +87,7 @@ Phase 7 adds optional `history` to the source profile and each guardian child
 record. It contains generation, validated bounded records, high sequence,
 count-pruned/expired totals, retention (60 seconds–30 days), maximum records
 (1–10,000) and last heartbeat. Defaults are seven days/10,000 rows, pending release
-confirmation. Guardian caches additionally retain cursor, last fetch and separate
+confirmation. Kinward caches additionally retain cursor, last fetch and separate
 cache-removal count. Source sequences must agree with retained rows/loss totals;
 malformed arrays, metadata, body types or generation fail closed into recovery.
 

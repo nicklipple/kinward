@@ -1,18 +1,18 @@
 local _, ns = ...
----@cast ns GuardianNamespace
+---@cast ns KinwardNamespace
 
 -- Source-backed candidate route, deliberately gated until P1-ID/P1-ROUTE pass.
 -- The caller must supply a verified local account identity and a fresh instance
 -- identifier; this module never invents authority from a payload or character name.
----@param family GuardianFamily
+---@param family KinwardFamily
 ---@param instance string
 ---@param verified boolean Recorded client routing/identity acceptance, not a user preference.
----@return GuardianTransport?, string
+---@return KinwardTransport?, string
 function ns.NewWoWTransport(family, instance, verified)
     if not verified then
         return nil, "live-routing-unverified"
     end
-    local prefix = "Guardian4"
+    local prefix = "Kinward4"
     local registered = C_ChatInfo.RegisterAddonMessagePrefix(prefix)
     if registered ~= 0 and registered ~= 1 then
         return nil, "prefix-unavailable"
@@ -202,7 +202,7 @@ function ns.NewWoWTransport(family, instance, verified)
                 and family.profile.role == "guardian"
             then
                 print(
-                    "Guardian: "
+                    "Kinward: "
                         .. peer:gsub("|", "||")
                         .. " requested guardianship. Accept or decline in Family."
                 )

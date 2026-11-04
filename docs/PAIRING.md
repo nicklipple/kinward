@@ -12,7 +12,7 @@ real-client verification is claimed by this change.
 ## Try the demo
 
 The development simulator is left staged for this checkout. Reload, then run
-`/guardian demo`:
+`/kinward demo`:
 
 1. Click **child**, open **Family & pairing**, and enter `parent` in the guardian
    name field. Check the resolved account shown below the field.
@@ -36,7 +36,7 @@ parent2 has no policy/history access. Membership changes sync automatically.
 
 ## Names and consent
 
-Choose the child/guardian roles once during setup. The candidate resolves only current verified Battle.net friends. Full BattleTag,
+Choose the child/kinward roles once during setup. The candidate resolves only current verified Battle.net friends. Full BattleTag,
 current online character name, or Name-Realm can identify a friend; ambiguous,
 missing, inaccessible or incomplete lookup data never guesses account ownership.
 Full names/BattleTags are recommended where character names collide. Offline

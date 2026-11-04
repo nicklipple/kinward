@@ -1,117 +1,118 @@
----@alias GuardianClock fun(): number
+---@alias KinwardClock fun(): number
 
 ---@meta
 
----@class GuardianSettings
+---@class KinwardSettings
 ---@field enabled boolean
+---@field minimapAngle? number Saved minimap position in radians.
 
----@class GuardianNamespace
----@field NormalizeSettings fun(saved: unknown): GuardianSettings
+---@class KinwardNamespace
+---@field NormalizeSettings fun(saved: unknown): KinwardSettings
 ---@field initialized boolean
----@field settings? GuardianSettings
+---@field settings? KinwardSettings
 
----@type GuardianSettings|nil
-GuardianDB = nil
+---@type KinwardSettings|nil
+KinwardDB = nil
 ---@type string
-SLASH_GUARDIAN1 = "/guardian"
+SLASH_KINWARD1 = "/kinward"
 
 -- Only assigned when the Phase 1 development probe is explicitly staged.
 ---@type string
-SLASH_GUARDIANPROBE1 = "/guardianprobe"
+SLASH_KINWARDPROBE1 = "/kinwardprobe"
 
----@class GuardianGrant
+---@class KinwardGrant
 ---@field mode 'indefinite'|'duration'|'session'
 ---@field expiresAt? number
 ---@field sessionId? string
 ---@field kind? 'character'|'account'
 ---@field target? string
 
----@class GuardianPolicy
----@field channels table<string, {read?: GuardianGrant, send?: GuardianGrant}>
----@field whispers table<string, GuardianGrant>
+---@class KinwardPolicy
+---@field channels table<string, {read?: KinwardGrant, send?: KinwardGrant}>
+---@field whispers table<string, KinwardGrant>
 
----@class GuardianIdentity
+---@class KinwardIdentity
 ---@field character? string
 ---@field account? string
 
----@class GuardianContext
+---@class KinwardContext
 ---@field now number Epoch seconds from an injected clock.
 ---@field sessionId string Adapter-supplied login token, retained across reload.
 ---@field accounts table<string, string> Trusted character-to-account mappings.
 
----@class GuardianSettings
+---@class KinwardSettings
 ---@field schemaVersion integer
 ---@field role 'unset'|'guardian'|'child'
 ---@field supervision 'unpaired'|'paired'|'recovery'
 ---@field generation string
 ---@field guardians table<string, boolean>
 ---@field children table<string, boolean>
----@field policy GuardianPolicy
+---@field policy KinwardPolicy
 ---@field queues table<string, string[]>
 ---@field sessionId? string
 ---@field damaged? unknown
 
----@class GuardianNamespace
+---@class KinwardNamespace
 ---@field profileVersion integer
 ---@field ValidIdentifier fun(value: unknown): boolean
 ---@field ValidGrant fun(grant: unknown): boolean
 ---@field CharacterKey fun(name: unknown, realm?: string): string?
----@field GrantActive fun(grant: GuardianGrant?, context: GuardianContext): boolean
----@field Evaluate fun(profile: GuardianSettings, channel: string, direction: 'read'|'send', identity: GuardianIdentity?, context: GuardianContext): boolean, string
----@field CanControl fun(profile: GuardianSettings, verifiedAccount: string, generation: string): boolean
----@field BeginSession fun(profile: GuardianSettings, sessionId: string): boolean
----@field NewGrant fun(mode: 'indefinite'|'duration'|'session', context: GuardianContext, seconds?: number): GuardianGrant?
+---@field GrantActive fun(grant: KinwardGrant?, context: KinwardContext): boolean
+---@field Evaluate fun(profile: KinwardSettings, channel: string, direction: 'read'|'send', identity: KinwardIdentity?, context: KinwardContext): boolean, string
+---@field CanControl fun(profile: KinwardSettings, verifiedAccount: string, generation: string): boolean
+---@field BeginSession fun(profile: KinwardSettings, sessionId: string): boolean
+---@field NewGrant fun(mode: 'indefinite'|'duration'|'session', context: KinwardContext, seconds?: number): KinwardGrant?
 
----@class GuardianSimEndpoint
----@field profile GuardianSettings
+---@class KinwardSimEndpoint
+---@field profile KinwardSettings
 ---@field online boolean
 ---@field offset number
 ---@field login integer
 
----@class GuardianSimPacket
+---@class KinwardSimPacket
 ---@field sender string
 ---@field recipient string
 ---@field due number
 ---@field wire string
 
----@class GuardianSimulator
+---@class KinwardSimulator
 ---@field now number
 ---@field delay number
 ---@field loss boolean
 ---@field duplicate boolean
----@field endpoints table<string, GuardianSimEndpoint>
----@field queue GuardianSimPacket[]
+---@field endpoints table<string, KinwardSimEndpoint>
+---@field queue KinwardSimPacket[]
 
----@class GuardianNamespace
----@field NewSimulator fun(): GuardianSimulator
----@field SimContext fun(sim: GuardianSimulator, id: string): GuardianContext
----@field SimSend fun(sim: GuardianSimulator, sender: string, recipient: string, channel: string, direction: 'read'|'send', grant: GuardianGrant, target?: string): boolean
----@field SimDeliver fun(sim: GuardianSimulator, index?: integer): boolean, string
+---@class KinwardNamespace
+---@field NewSimulator fun(): KinwardSimulator
+---@field SimContext fun(sim: KinwardSimulator, id: string): KinwardContext
+---@field SimSend fun(sim: KinwardSimulator, sender: string, recipient: string, channel: string, direction: 'read'|'send', grant: KinwardGrant, target?: string): boolean
+---@field SimDeliver fun(sim: KinwardSimulator, index?: integer): boolean, string
 
 -- Only assigned when the Phase 2 simulator is explicitly staged.
 ---@type string
-SLASH_GUARDIANSIM1 = "/guardiansim"
+SLASH_KINWARDSIM1 = "/kinwardsim"
 
----@class GuardianReplayEntry
+---@class KinwardReplayEntry
 ---@field wire string
 ---@field result string
 
----@class GuardianReplayLedger
+---@class KinwardReplayLedger
 ---@field high number
----@field entries table<string, GuardianReplayEntry>
+---@field entries table<string, KinwardReplayEntry>
 
----@class GuardianChildProfile
+---@class KinwardChildProfile
 ---@field replySequence? number
 ---@field generation string
 ---@field result string
 
----@class GuardianSettings
----@field familyReplay table<string, GuardianReplayLedger>
+---@class KinwardSettings
+---@field familyReplay table<string, KinwardReplayLedger>
 ---@field familySequence table<string, number>
----@field childProfiles table<string, GuardianChildProfile>
+---@field childProfiles table<string, KinwardChildProfile>
 
----@class GuardianFamily
----@field profile GuardianSettings
+---@class KinwardFamily
+---@field profile KinwardSettings
 ---@field id string
 ---@field freshToken fun(): string
 ---@field attempts integer
@@ -119,56 +120,56 @@ SLASH_GUARDIANSIM1 = "/guardiansim"
 ---@field pending? {peer: string, operation: string, expires: number, wire: string}
 ---@field outgoing table<string, {kind: string, generation: string, sequence: string}>
 
----@class GuardianNamespace
+---@class KinwardNamespace
 ---@field EncodeMessage fun(fields: string[]): string?
 ---@field DecodeMessage fun(wire: unknown): string[]?, string
----@field NewFamily fun(profile: GuardianSettings, id: string, freshToken: fun(): string): GuardianFamily
----@field FamilyInvite fun(endpoint: GuardianFamily, peer: string, code: string, now: number): boolean
----@field FamilyConfirm fun(endpoint: GuardianFamily, peer: string, operation: string, confirmed: boolean, now: number, friends: table<string, boolean>): boolean, string
----@field FamilyReset fun(endpoint: GuardianFamily, confirmed: boolean): boolean, string
----@field FamilyCanDeliver fun(endpoint: GuardianFamily, peer: string, generation: string): boolean
----@field FamilyReceive fun(endpoint: GuardianFamily, peer: string, wire: unknown, now: number, friends: table<string, boolean>): boolean, string, string?
----@field FamilyRequest fun(endpoint: GuardianFamily, peer: string, generation: string, kind: string, arguments: string[]): string?
----@field FamilyReply fun(endpoint: GuardianFamily, peer: string, wire: unknown): boolean, string
+---@field NewFamily fun(profile: KinwardSettings, id: string, freshToken: fun(): string): KinwardFamily
+---@field FamilyInvite fun(endpoint: KinwardFamily, peer: string, code: string, now: number): boolean
+---@field FamilyConfirm fun(endpoint: KinwardFamily, peer: string, operation: string, confirmed: boolean, now: number, friends: table<string, boolean>): boolean, string
+---@field FamilyReset fun(endpoint: KinwardFamily, confirmed: boolean): boolean, string
+---@field FamilyCanDeliver fun(endpoint: KinwardFamily, peer: string, generation: string): boolean
+---@field FamilyReceive fun(endpoint: KinwardFamily, peer: string, wire: unknown, now: number, friends: table<string, boolean>): boolean, string, string?
+---@field FamilyRequest fun(endpoint: KinwardFamily, peer: string, generation: string, kind: string, arguments: string[]): string?
+---@field FamilyReply fun(endpoint: KinwardFamily, peer: string, wire: unknown): boolean, string
 
----@class GuardianSimEndpoint
----@field family GuardianFamily
+---@class KinwardSimEndpoint
+---@field family KinwardFamily
 ---@field friends table<string, boolean>
 
----@class GuardianSimulator
+---@class KinwardSimulator
 ---@field token integer
 ---@field familyMode boolean
 
----@class GuardianNamespace
----@field SimEnqueue fun(sim: GuardianSimulator, sender: string, recipient: string, wire: string): boolean
----@field SimFamilySend fun(sim: GuardianSimulator, sender: string, recipient: string, kind: string, arguments: string[]): boolean
----@field SimFreshFamily fun(sim: GuardianSimulator)
+---@class KinwardNamespace
+---@field SimEnqueue fun(sim: KinwardSimulator, sender: string, recipient: string, wire: string): boolean
+---@field SimFamilySend fun(sim: KinwardSimulator, sender: string, recipient: string, kind: string, arguments: string[]): boolean
+---@field SimFreshFamily fun(sim: KinwardSimulator)
 
----@class GuardianReplayEntry
+---@class KinwardReplayEntry
 ---@field revision? number
 
----@class GuardianSettings
+---@class KinwardSettings
 ---@field policyRevision? number
 
----@class GuardianSettingView
+---@class KinwardSettingView
 ---@field mode string
 ---@field expiresAt? number
 ---@field sessionId? string
 ---@field revision number
 
----@class GuardianChildProfile
+---@class KinwardChildProfile
 ---@field revision? number
 ---@field members? table<string, boolean>
----@field settings? table<string, GuardianSettingView>
+---@field settings? table<string, KinwardSettingView>
 
----@class GuardianTransportIO
+---@class KinwardTransportIO
 ---@field instance string Fresh per endpoint construction; alphanumeric/hyphen, <= 36 characters.
 ---@field now fun(): number
 ---@field friends fun(): table<string, boolean>
 ---@field resolve fun(peer: string): number?
 ---@field send fun(route: number, packet: string): string
 
----@class GuardianDelivery
+---@class KinwardDelivery
 ---@field peer string
 ---@field wire string
 ---@field deadline number
@@ -186,72 +187,72 @@ SLASH_GUARDIANSIM1 = "/guardiansim"
 ---@field revision? number
 ---@field receipt? string
 
----@class GuardianAssembly
+---@class KinwardAssembly
 ---@field peer string
 ---@field total number
 ---@field parts table<number, string>
 ---@field expires number
 
----@class GuardianTransport
----@field family GuardianFamily
----@field io GuardianTransportIO
+---@class KinwardTransport
+---@field family KinwardFamily
+---@field io KinwardTransportIO
 ---@field serial integer
----@field work GuardianDelivery[]
----@field incoming table<string, GuardianAssembly>
+---@field work KinwardDelivery[]
+---@field incoming table<string, KinwardAssembly>
 ---@field contacts table<string, number>
 ---@field nextSend number
 ---@field stop? fun()
 
----@class GuardianDashboard
----@field profile GuardianSettings
----@field transport? GuardianTransport
+---@class KinwardDashboard
+---@field profile KinwardSettings
+---@field transport? KinwardTransport
 ---@field message string
 ---@field now fun(): number
 
----@class GuardianNamespace
----@field NewTransport fun(family: GuardianFamily, io: GuardianTransportIO): GuardianTransport
----@field TransportRequest fun(t: GuardianTransport, peer: string, kind: string, args: string[], seconds?: number): GuardianDelivery?, string
----@field TransportReceive fun(t: GuardianTransport, peer: string, packet: unknown): boolean
----@field TransportTick fun(t: GuardianTransport)
----@field TransportPresence fun(t: GuardianTransport, peer: string): string, number?
----@field NewWoWTransport fun(family: GuardianFamily, instance: string, verified: boolean): GuardianTransport?, string
----@field NewDashboard fun(profile: GuardianSettings, transport?: GuardianTransport, now?: GuardianClock, chat?: GuardianChat): GuardianDashboard
----@field DashboardCommand fun(d: GuardianDashboard, message: string): string
----@field DashboardText fun(d: GuardianDashboard): string
----@field ShowDashboard fun(d: GuardianDashboard, section?: string)
----@field dashboard? GuardianDashboard
+---@class KinwardNamespace
+---@field NewTransport fun(family: KinwardFamily, io: KinwardTransportIO): KinwardTransport
+---@field TransportRequest fun(t: KinwardTransport, peer: string, kind: string, args: string[], seconds?: number): KinwardDelivery?, string
+---@field TransportReceive fun(t: KinwardTransport, peer: string, packet: unknown): boolean
+---@field TransportTick fun(t: KinwardTransport)
+---@field TransportPresence fun(t: KinwardTransport, peer: string): string, number?
+---@field NewWoWTransport fun(family: KinwardFamily, instance: string, verified: boolean): KinwardTransport?, string
+---@field NewDashboard fun(profile: KinwardSettings, transport?: KinwardTransport, now?: KinwardClock, chat?: KinwardChat): KinwardDashboard
+---@field DashboardCommand fun(d: KinwardDashboard, message: string): string
+---@field DashboardText fun(d: KinwardDashboard): string
+---@field ShowDashboard fun(d: KinwardDashboard, section?: string)
+---@field dashboard? KinwardDashboard
 
----@class GuardianNetworkSimulator
----@field sim GuardianSimulator
----@field transports table<string, GuardianTransport>
----@field dashboards table<string, GuardianDashboard>
+---@class KinwardNetworkSimulator
+---@field sim KinwardSimulator
+---@field transports table<string, KinwardTransport>
+---@field dashboards table<string, KinwardDashboard>
 ---@field routes table<string, number>
 
----@class GuardianNamespace
----@field NewNetworkSimulator fun(): GuardianNetworkSimulator
----@field NetworkAdvance fun(network: GuardianNetworkSimulator, seconds: number)
+---@class KinwardNamespace
+---@field NewNetworkSimulator fun(): KinwardNetworkSimulator
+---@field NetworkAdvance fun(network: KinwardNetworkSimulator, seconds: number)
 
----@class GuardianTransport
+---@class KinwardTransport
 ---@field completedSnapshots table<string, string>
----@field snapshots table<string, {revision: number, generation: string, settings: table<string, GuardianSettingView>, cursor: number}>
+---@field snapshots table<string, {revision: number, generation: string, settings: table<string, KinwardSettingView>, cursor: number}>
 
----@class GuardianTransport
+---@class KinwardTransport
 ---@field receiveWindow? number
 ---@field receiveCount? number
 
----@class GuardianDashboard
+---@class KinwardDashboard
 ---@field window? Frame
 ---@field selectedChild? string
----@field demo? GuardianNetworkSimulator
+---@field demo? KinwardNetworkSimulator
 
----@class GuardianNamespace
----@field DashboardAction fun(d: GuardianDashboard, kind: string, args: string[]): string
----@field DashboardPermission fun(d: GuardianDashboard, child: string?, channel: string, direction: 'read'|'send', target?: string): string, number, number, number
+---@class KinwardNamespace
+---@field DashboardAction fun(d: KinwardDashboard, kind: string, args: string[]): string
+---@field DashboardPermission fun(d: KinwardDashboard, child: string?, channel: string, direction: 'read'|'send', target?: string): string, number, number, number
 ---@field ShowNetworkDemo? fun()
 
----@class GuardianChat
----@field profile GuardianSettings
----@field context fun(): GuardianContext
+---@class KinwardChat
+---@field profile KinwardSettings
+---@field context fun(): KinwardContext
 ---@field seen table<string, {allowed: boolean, reason: string}>
 ---@field order string[]
 ---@field decisions integer
@@ -260,30 +261,30 @@ SLASH_GUARDIANSIM1 = "/guardiansim"
 ---@field attemptedSends integer
 ---@field observedOutputs integer Local whisper output events, not delivery receipts.
 
----@class GuardianChatIO
+---@class KinwardChatIO
 ---@field prompt? fun(character: string) Open the child dashboard; no message body.
 ---@field account fun(character: string): string? Current verified BN friend, or nil.
 ---@field freshSession fun(): string Fresh login token; must not repeat a saved token.
 
----@class GuardianWoWChat
----@field chat GuardianChat
+---@class KinwardWoWChat
+---@field chat KinwardChat
 ---@field stop fun(): string
 
----@class GuardianNamespace
----@field NewChat fun(profile: GuardianSettings, context: fun(): GuardianContext): GuardianChat
----@field ChatDecision fun(chat: GuardianChat, channel: string, direction: 'read'|'send', identity?: GuardianIdentity, line?: number): boolean, string
----@field NewWoWChat fun(profile: GuardianSettings, io: GuardianChatIO, verified: boolean): GuardianWoWChat?, string
+---@class KinwardNamespace
+---@field NewChat fun(profile: KinwardSettings, context: fun(): KinwardContext): KinwardChat
+---@field ChatDecision fun(chat: KinwardChat, channel: string, direction: 'read'|'send', identity?: KinwardIdentity, line?: number): boolean, string
+---@field NewWoWChat fun(profile: KinwardSettings, io: KinwardChatIO, verified: boolean): KinwardWoWChat?, string
 
----@class GuardianNamespace
----@field chat? GuardianWoWChat
+---@class KinwardNamespace
+---@field chat? KinwardWoWChat
 
----@class GuardianNetworkSimulator
----@field chats table<string, GuardianChat>
+---@class KinwardNetworkSimulator
+---@field chats table<string, KinwardChat>
 
----@class GuardianNamespace
+---@class KinwardNamespace
 ---@field ResolveWoWChatAccount fun(character: string): string?
 
----@class GuardianRequest
+---@class KinwardRequest
 ---@field id string
 ---@field generation string
 ---@field channel string
@@ -295,49 +296,49 @@ SLASH_GUARDIANSIM1 = "/guardiansim"
 ---@field baseRevision number
 ---@field sessionId string
 
----@class GuardianRequestState
----@field requests? table<string, GuardianRequest>
+---@class KinwardRequestState
+---@field requests? table<string, KinwardRequest>
 ---@field generation string
 ---@field requestPrompts? boolean
 ---@field requestSequence? number
 
----@class GuardianSettings
----@field requests? table<string, GuardianRequest>
+---@class KinwardSettings
+---@field requests? table<string, KinwardRequest>
 ---@field requestPrompts? boolean
 ---@field requestSequence? number
 
----@class GuardianChildProfile
----@field requests? table<string, GuardianRequest>
+---@class KinwardChildProfile
+---@field requests? table<string, KinwardRequest>
 ---@field requestPrompts? boolean
 
----@class GuardianChat
+---@class KinwardChat
 ---@field promptSeen? table<string, number>
 ---@field nextPrompt? number
 ---@field prompt? {character: string, expires: number, generation: string}
 
----@class GuardianTransport
+---@class KinwardTransport
 ---@field nextRequestPoll? number
 
----@class GuardianDashboard
----@field chat? GuardianChat
+---@class KinwardDashboard
+---@field chat? KinwardChat
 
----@class GuardianNamespace
+---@class KinwardNamespace
 ---@field ValidRequest fun(r: unknown): boolean
----@field ValidRequestState fun(profile: GuardianRequestState): boolean
----@field ExpireRequests fun(profile: GuardianSettings, now: number)
----@field RequestRows fun(profile: GuardianSettings, now: number): GuardianRequest[]
----@field CreateRequest fun(profile: GuardianSettings, id: string, channel: string, direction: 'read'|'send', target: string, reason: string, now: number): GuardianRequest?, string
----@field CancelRequest fun(profile: GuardianSettings, id: string, now: number): boolean, string
----@field ApplyRequestDecision fun(profile: GuardianSettings, fields: string[], now: number, applyPolicy: fun(fields: string[]): string): string
----@field ChatWhisperPrompt fun(chat: GuardianChat, identity: GuardianIdentity)
----@field RequestPage fun(profile: GuardianSettings, fields: string[], now: number): string?
----@field AcceptRequestPage fun(t: GuardianTransport, peer: string, fields: string[], item: GuardianDelivery): boolean
----@field PollRequests fun(t: GuardianTransport)
+---@field ValidRequestState fun(profile: KinwardRequestState): boolean
+---@field ExpireRequests fun(profile: KinwardSettings, now: number)
+---@field RequestRows fun(profile: KinwardSettings, now: number): KinwardRequest[]
+---@field CreateRequest fun(profile: KinwardSettings, id: string, channel: string, direction: 'read'|'send', target: string, reason: string, now: number): KinwardRequest?, string
+---@field CancelRequest fun(profile: KinwardSettings, id: string, now: number): boolean, string
+---@field ApplyRequestDecision fun(profile: KinwardSettings, fields: string[], now: number, applyPolicy: fun(fields: string[]): string): string
+---@field ChatWhisperPrompt fun(chat: KinwardChat, identity: KinwardIdentity)
+---@field RequestPage fun(profile: KinwardSettings, fields: string[], now: number): string?
+---@field AcceptRequestPage fun(t: KinwardTransport, peer: string, fields: string[], item: KinwardDelivery): boolean
+---@field PollRequests fun(t: KinwardTransport)
 
----@class GuardianTransport
----@field requestSnapshots? table<string, {generation: string, cursor: number, requests: table<string, GuardianRequest>}>
+---@class KinwardTransport
+---@field requestSnapshots? table<string, {generation: string, cursor: number, requests: table<string, KinwardRequest>}>
 
----@class GuardianHistoryRecord
+---@class KinwardHistoryRecord
 ---@field seq number
 ---@field time number
 ---@field endedAt number
@@ -349,9 +350,9 @@ SLASH_GUARDIANSIM1 = "/guardiansim"
 ---@field text string
 ---@field truncated boolean
 
----@class GuardianHistory
+---@class KinwardHistory
 ---@field generation string
----@field records GuardianHistoryRecord[]
+---@field records KinwardHistoryRecord[]
 ---@field high number
 ---@field pruned number
 ---@field expired number
@@ -362,7 +363,7 @@ SLASH_GUARDIANSIM1 = "/guardiansim"
 ---@field updatedAt? number
 ---@field cacheRemoved? number
 
----@class GuardianHistoryFilters
+---@class KinwardHistoryFilters
 ---@field channel? string
 ---@field direction? string
 ---@field disposition? string
@@ -371,75 +372,75 @@ SLASH_GUARDIANSIM1 = "/guardiansim"
 ---@field from? number
 ---@field to? number
 
----@class GuardianCapturePending
+---@class KinwardCapturePending
 ---@field generation string
 ---@field time number
 ---@field channel string
----@field identity? GuardianIdentity
+---@field identity? KinwardIdentity
 ---@field text string
 ---@field truncated boolean
 
----@class GuardianSettings
----@field history? GuardianHistory
+---@class KinwardSettings
+---@field history? KinwardHistory
 
----@class GuardianChildProfile
----@field history? GuardianHistory
+---@class KinwardChildProfile
+---@field history? KinwardHistory
 
----@class GuardianChat
+---@class KinwardChat
 ---@field monitoring? boolean
 ---@field captureStarted? boolean
 ---@field nextCaptureGap? number
 ---@field captureSeen? table<string, boolean>
 ---@field captureOrder? string[]
----@field pendingCaptures? GuardianCapturePending[]
----@field recentCaptures? GuardianCapturePending[]
+---@field pendingCaptures? KinwardCapturePending[]
+---@field recentCaptures? KinwardCapturePending[]
 ---@field restrictedSince? number
 
----@class GuardianTransport
+---@class KinwardTransport
 ---@field historyWatching? table<string, boolean>
 ---@field nextHistoryPoll? number
 
----@class GuardianChatIO
+---@class KinwardChatIO
 ---@field selfCharacter? fun(): string? Verified normalized current local character.
 
----@class GuardianNamespace
----@field NewHistory fun(generation: string): GuardianHistory
+---@class KinwardNamespace
+---@field NewHistory fun(generation: string): KinwardHistory
 ---@field ValidHistoryRecord fun(record: unknown): boolean
 ---@field ValidHistory fun(history: unknown, generation: string): boolean
----@field PruneHistory fun(history: GuardianHistory, now: number)
----@field HistoryRelationshipChanged fun(profile: GuardianSettings)
----@field ConfigureHistory fun(profile: GuardianSettings, retention: number, count: number, now: number): boolean
----@field AppendHistory fun(profile: GuardianSettings, now: number, direction: 'read'|'send'|'system', channel: string, identity: GuardianIdentity?, disposition: string, body: string, endedAt?: number): GuardianHistoryRecord?
----@field HistoryBatch fun(profile: GuardianSettings, fields: string[], now: number): string?
----@field AcceptHistoryBatch fun(t: GuardianTransport, peer: string, fields: string[], item: GuardianDelivery): boolean
----@field WatchHistory fun(t: GuardianTransport, peer: string): boolean
----@field PollHistory fun(t: GuardianTransport)
----@field HistoryView fun(profile: GuardianSettings, peer: string, filters: GuardianHistoryFilters, now: number): GuardianHistoryRecord[]
----@field HistoryGap fun(chat: GuardianChat, reason: string, since?: number)
----@field CaptureRead fun(chat: GuardianChat, channel: string, identity: GuardianIdentity?, body: string?, allowed: boolean, line: number?, gapReason?: string)
----@field CaptureSend fun(chat: GuardianChat, channel: string, identity: GuardianIdentity?, body: string?, allowed: boolean)
----@field CaptureOutput fun(chat: GuardianChat, channel: string, identity: GuardianIdentity?, body: string?, line: number?)
----@field FlushHistorySends fun(chat: GuardianChat, force?: boolean)
----@field HistoryHeartbeat fun(chat: GuardianChat, restricted: boolean)
+---@field PruneHistory fun(history: KinwardHistory, now: number)
+---@field HistoryRelationshipChanged fun(profile: KinwardSettings)
+---@field ConfigureHistory fun(profile: KinwardSettings, retention: number, count: number, now: number): boolean
+---@field AppendHistory fun(profile: KinwardSettings, now: number, direction: 'read'|'send'|'system', channel: string, identity: KinwardIdentity?, disposition: string, body: string, endedAt?: number): KinwardHistoryRecord?
+---@field HistoryBatch fun(profile: KinwardSettings, fields: string[], now: number): string?
+---@field AcceptHistoryBatch fun(t: KinwardTransport, peer: string, fields: string[], item: KinwardDelivery): boolean
+---@field WatchHistory fun(t: KinwardTransport, peer: string): boolean
+---@field PollHistory fun(t: KinwardTransport)
+---@field HistoryView fun(profile: KinwardSettings, peer: string, filters: KinwardHistoryFilters, now: number): KinwardHistoryRecord[]
+---@field HistoryGap fun(chat: KinwardChat, reason: string, since?: number)
+---@field CaptureRead fun(chat: KinwardChat, channel: string, identity: KinwardIdentity?, body: string?, allowed: boolean, line: number?, gapReason?: string)
+---@field CaptureSend fun(chat: KinwardChat, channel: string, identity: KinwardIdentity?, body: string?, allowed: boolean)
+---@field CaptureOutput fun(chat: KinwardChat, channel: string, identity: KinwardIdentity?, body: string?, line: number?)
+---@field FlushHistorySends fun(chat: KinwardChat, force?: boolean)
+---@field HistoryHeartbeat fun(chat: KinwardChat, restricted: boolean)
 
----@class GuardianNamespace
----@field SimHistorySamples fun(network: GuardianNetworkSimulator, child: string)
+---@class KinwardNamespace
+---@field SimHistorySamples fun(network: KinwardNetworkSimulator, child: string)
 
----@alias GuardianClick fun()
----@alias GuardianActivityRefresh fun(visible: boolean, canEdit: boolean)
+---@alias KinwardClick fun()
+---@alias KinwardActivityRefresh fun(visible: boolean, canEdit: boolean)
 
----@class GuardianActivityWidgets
----@field button fun(parent: Frame, x: number, y: number, width: number, caption: string, callback: GuardianClick): Button
+---@class KinwardActivityWidgets
+---@field button fun(parent: Frame, x: number, y: number, width: number, caption: string, callback: KinwardClick): Button
 ---@field input fun(parent: Frame, x: number, y: number, width: number): EditBox
 ---@field label fun(parent: Frame, x: number, y: number, width: number, value: string, font?: string): FontString
 
----@class GuardianNamespace
----@field NewActivityPanel fun(d: GuardianDashboard, activity: Frame, widgets: GuardianActivityWidgets): GuardianActivityRefresh
+---@class KinwardNamespace
+---@field NewActivityPanel fun(d: KinwardDashboard, activity: Frame, widgets: KinwardActivityWidgets): KinwardActivityRefresh
 
----@class GuardianNamespace
----@field PruneProfileHistory fun(profile: GuardianSettings, now: number)
+---@class KinwardNamespace
+---@field PruneProfileHistory fun(profile: KinwardSettings, now: number)
 
----@class GuardianPairingProposal
+---@class KinwardPairingProposal
 ---@field peer string
 ---@field token string
 ---@field generation string
@@ -448,10 +449,10 @@ SLASH_GUARDIANSIM1 = "/guardiansim"
 ---@field operation? string
 ---@field sequence? string
 
----@class GuardianPairingInbox: GuardianPairingProposal
+---@class KinwardPairingInbox: KinwardPairingProposal
 ---@field sequence string
 
----@class GuardianPairingReceipt
+---@class KinwardPairingReceipt
 ---@field peer string
 ---@field token string
 ---@field requestGeneration string
@@ -460,42 +461,42 @@ SLASH_GUARDIANSIM1 = "/guardiansim"
 ---@field sequence string
 ---@field expires number
 
----@class GuardianFamily
----@field proposal? GuardianPairingProposal
----@field guardianInbox? table<string, GuardianPairingInbox>
+---@class KinwardFamily
+---@field proposal? KinwardPairingProposal
+---@field guardianInbox? table<string, KinwardPairingInbox>
 
----@class GuardianSettings
----@field pairingReceipt? GuardianPairingReceipt
+---@class KinwardSettings
+---@field pairingReceipt? KinwardPairingReceipt
 
----@class GuardianTransportIO
+---@class KinwardTransportIO
 ---@field findPeer? fun(name: string): string? Resolve only current unambiguous verified friend aliases.
 
----@class GuardianTransport
+---@class KinwardTransport
 ---@field nextPairingPoll? number
 ---@field pairingPolling? boolean
 ---@field guardianCandidates? table<string, {peer: string, token: string, generation: string, expires: number}>
 
----@alias GuardianFamilyConfirm fun(caption: string, kind: string, args: string[])
----@alias GuardianPairingRefresh fun(canEdit: boolean, visible: boolean)
+---@alias KinwardFamilyConfirm fun(caption: string, kind: string, args: string[])
+---@alias KinwardPairingRefresh fun(canEdit: boolean, visible: boolean)
 
----@class GuardianNamespace
----@field ValidPairingReceipt fun(profile: GuardianSettings): boolean
----@field StorePairingReceipt fun(endpoint: GuardianFamily, proposal?: GuardianPairingProposal)
----@field RequestGuardianship fun(t: GuardianTransport, name: string, expectedPeer?: string): boolean, string
----@field AnswerGuardianship fun(t: GuardianTransport, peer: string, token: string, accept: boolean): boolean, string
----@field ReceiveGuardianship fun(endpoint: GuardianFamily, peer: string, fields: string[], now: number, friends: table<string, boolean>): boolean, string, string?
----@field AcceptGuardianCandidate fun(t: GuardianTransport, peer: string, fields: string[], item: GuardianDelivery): boolean
----@field TickGuardianship fun(t: GuardianTransport)
----@field PairingWorkValid fun(t: GuardianTransport, item: GuardianDelivery): boolean
----@field NewPairingPanel fun(d: GuardianDashboard, family: Frame, widgets: GuardianActivityWidgets, confirm: GuardianFamilyConfirm): GuardianPairingRefresh
+---@class KinwardNamespace
+---@field ValidPairingReceipt fun(profile: KinwardSettings): boolean
+---@field StorePairingReceipt fun(endpoint: KinwardFamily, proposal?: KinwardPairingProposal)
+---@field RequestGuardianship fun(t: KinwardTransport, name: string, expectedPeer?: string): boolean, string
+---@field AnswerGuardianship fun(t: KinwardTransport, peer: string, token: string, accept: boolean): boolean, string
+---@field ReceiveGuardianship fun(endpoint: KinwardFamily, peer: string, fields: string[], now: number, friends: table<string, boolean>): boolean, string, string?
+---@field AcceptGuardianCandidate fun(t: KinwardTransport, peer: string, fields: string[], item: KinwardDelivery): boolean
+---@field TickGuardianship fun(t: KinwardTransport)
+---@field PairingWorkValid fun(t: KinwardTransport, item: KinwardDelivery): boolean
+---@field NewPairingPanel fun(d: KinwardDashboard, family: Frame, widgets: KinwardActivityWidgets, confirm: KinwardFamilyConfirm): KinwardPairingRefresh
 
----@class GuardianNamespace
----@field ResolveGuardianPeer fun(t: GuardianTransport, name: string): string?
+---@class KinwardNamespace
+---@field ResolveGuardianPeer fun(t: KinwardTransport, name: string): string?
 
----@class GuardianDashboard
+---@class KinwardDashboard
 ---@field focusSection? fun(section: string)
 
----@class GuardianNamespace
+---@class KinwardNamespace
 ---@field minimapButton? Button
 ---@field InstallMinimapButton fun(): Button?
 ---@field OpenDashboard fun()

@@ -1,15 +1,15 @@
 local _, ns = ...
----@cast ns GuardianNamespace
+---@cast ns KinwardNamespace
 
 local function plain(value)
     return tostring(value):gsub("|", "||")
 end
 
----@param d GuardianDashboard
+---@param d KinwardDashboard
 ---@param family Frame
----@param widgets GuardianActivityWidgets
----@param confirm GuardianFamilyConfirm
----@return GuardianPairingRefresh
+---@param widgets KinwardActivityWidgets
+---@param confirm KinwardFamilyConfirm
+---@return KinwardPairingRefresh
 function ns.NewPairingPanel(d, family, widgets, confirm)
     local label, button, input = widgets.label, widgets.button, widgets.input
     local title = label(family, 14, 14, 680, "", "GameFontNormal")

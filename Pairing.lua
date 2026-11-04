@@ -1,5 +1,5 @@
 local _, ns = ...
----@cast ns GuardianNamespace
+---@cast ns KinwardNamespace
 
 local function state(endpoint, fields)
     local p = endpoint.profile
@@ -21,7 +21,7 @@ local function ack(fields, result)
     return ns.EncodeMessage({ "1", "ack", fields[3], fields[4], fields[5], result })
 end
 
----@param profile GuardianSettings
+---@param profile KinwardSettings
 ---@return boolean
 function ns.ValidPairingReceipt(profile)
     local r = profile.pairingReceipt
@@ -45,8 +45,8 @@ function ns.ValidPairingReceipt(profile)
         )
 end
 
----@param endpoint GuardianFamily
----@param proposal? GuardianPairingProposal
+---@param endpoint KinwardFamily
+---@param proposal? KinwardPairingProposal
 function ns.StorePairingReceipt(endpoint, proposal)
     if
         proposal
@@ -66,7 +66,7 @@ function ns.StorePairingReceipt(endpoint, proposal)
     end
 end
 
----@param t GuardianTransport
+---@param t KinwardTransport
 ---@param name string
 ---@return string?
 function ns.ResolveGuardianPeer(t, name)
@@ -86,7 +86,7 @@ function ns.ResolveGuardianPeer(t, name)
     return peer
 end
 
----@param t GuardianTransport
+---@param t KinwardTransport
 ---@param name string
 ---@param expectedPeer? string
 ---@return boolean, string
@@ -144,7 +144,7 @@ function ns.RequestGuardianship(t, name, expectedPeer)
             .. ". They can accept in Family; requests expire after two minutes."
 end
 
----@param t GuardianTransport
+---@param t KinwardTransport
 ---@param peer string
 ---@param token string Exact rendered request; never read from an input field.
 ---@param accept boolean
@@ -178,7 +178,7 @@ function ns.AnswerGuardianship(t, peer, token, accept)
     return true, accept and "Acceptance sent. Waiting for the child to apply it." or "Decline sent."
 end
 
----@param endpoint GuardianFamily
+---@param endpoint KinwardFamily
 ---@param peer string
 ---@param fields string[]
 ---@param now number
@@ -297,10 +297,10 @@ function ns.ReceiveGuardianship(endpoint, peer, fields, now, friends)
     return true, "paired", state(endpoint, fields)
 end
 
----@param t GuardianTransport
+---@param t KinwardTransport
 ---@param peer string
 ---@param fields string[]
----@param item GuardianDelivery
+---@param item KinwardDelivery
 ---@return boolean
 function ns.AcceptGuardianCandidate(t, peer, fields, item)
     local child = t.family.profile.childProfiles[peer]
@@ -334,7 +334,7 @@ function ns.AcceptGuardianCandidate(t, peer, fields, item)
     return true
 end
 
----@param t GuardianTransport
+---@param t KinwardTransport
 function ns.TickGuardianship(t)
     local now, f = t.io.now(), t.family
     if f.proposal and now >= f.proposal.expires then
@@ -388,8 +388,8 @@ function ns.TickGuardianship(t)
     end
 end
 
----@param t GuardianTransport
----@param item GuardianDelivery
+---@param t KinwardTransport
+---@param item KinwardDelivery
 ---@return boolean
 function ns.PairingWorkValid(t, item)
     if item.reply then

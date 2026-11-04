@@ -29,19 +29,25 @@ local function client(saved)
         GetFrameLevel = function()
             return 4
         end,
+        GetCenter = function()
+            return 100, 100
+        end,
+        GetEffectiveScale = function()
+            return 2
+        end,
     }
     local button = { scripts = {}, created = 0 }
     function button:SetSize(w, h)
         assert(w == 32 and h == 32)
     end
+    function button:ClearAllPoints() end
     function button:SetPoint(point, parent, relative, x, y)
-        assert(
-            point == "CENTER"
-                and parent == minimap
-                and relative == "CENTER"
-                and x == -65
-                and y == -65
-        )
+        assert(point == "CENTER" and parent == minimap and relative == "CENTER")
+        self.x, self.y = x, y
+        assert(math.abs(x * x + y * y - 92 * 92) < 0.001)
+    end
+    function button:RegisterForDrag(mouseButton)
+        assert(mouseButton == "LeftButton")
     end
     function button:SetFrameStrata(strata)
         assert(strata == "MEDIUM")
@@ -53,7 +59,7 @@ local function client(saved)
         assert(click == "LeftButtonUp")
     end
     function button:SetNormalTexture(path)
-        assert(path:find("TinyShield", 1, true))
+        assert(path == "Interface\\AddOns\\Kinward\\KinwardIcon.tga")
     end
     function button:SetHighlightTexture(path)
         assert(path:find("Highlight", 1, true))
@@ -73,7 +79,16 @@ local function client(saved)
         }
     end
     function button:SetScript(script, callback)
-        assert(script == "OnClick" or script == "OnEnter" or script == "OnLeave")
+        assert(
+            script == "OnClick"
+                or script == "OnEnter"
+                or script == "OnLeave"
+                or script == "OnDragStart"
+                or script == "OnDragStop"
+                or script == "OnUpdate"
+                or script == "OnHide"
+                or script == "OnMouseDown"
+        )
         self.scripts[script] = callback
     end
     setmetatable(button, {
@@ -99,20 +114,29 @@ local function client(saved)
         pairs = pairs,
         ipairs = ipairs,
         next = next,
-        math = { huge = math.huge },
+        math = {
+            huge = math.huge,
+            pi = math.pi,
+            cos = math.cos,
+            sin = math.sin,
+            atan2 = math.atan2,
+        },
         tonumber = tonumber,
         tostring = tostring,
         string = { format = string.format },
-        GuardianDB = saved,
+        KinwardDB = saved,
         Minimap = minimap,
         GameTooltip = tooltip,
+        GetCursorPosition = function()
+            return 400, 200
+        end,
         GetServerTime = function()
             return 1000
         end,
         SlashCmdList = {},
         C_AddOns = {
             GetAddOnMetadata = function(name, field)
-                assert(name == "Guardian" and field == "Version")
+                assert(name == "Kinward" and field == "Version")
                 return "0.1.0"
             end,
         },
@@ -139,24 +163,24 @@ local function client(saved)
     end
     setmetatable(env, {
         __index = function(_, key)
-            if key == "GuardianDB" then
+            if key == "KinwardDB" then
                 return nil
             end
             error("Unexpected global: " .. key)
         end,
         __newindex = function(t, key, value)
             assert(
-                key == "GuardianDB" or key == "SLASH_GUARDIAN1",
+                key == "KinwardDB" or key == "SLASH_KINWARD1",
                 "Unexpected global write: " .. key
             )
             rawset(t, key, value)
         end,
     })
     -- Execute the actual manifest order with WoW's shared loading arguments.
-    for line in io.lines("Guardian.toc") do
+    for line in io.lines("Kinward.toc") do
         if line:match("%.lua$") then
             local chunk = assert(loadfile(line))
-            setfenv(chunk, env)("Guardian", ns)
+            setfenv(chunk, env)("Kinward", ns)
         end
     end
     local function event(name, kind)
@@ -188,59 +212,96 @@ test("ignores unrelated addon events without touching saved data", function()
     local ns, env, event, _, registered = client(saved)
     event("AnotherAddon")
     assert(not ns.initialized and ns.settings == nil)
-    assert(env.GuardianDB == saved and saved.enabled == "not yet normalized")
+    assert(env.KinwardDB == saved and saved.enabled == "not yet normalized")
     assert(registered.ADDON_LOADED)
 end)
 test("initializes only on own event and unregisters", function()
     local ns, env, event, _, registered = client()
-    assert(not ns.initialized and env.GuardianDB == nil)
-    event("Guardian")
-    assert(ns.initialized and ns.settings == env.GuardianDB and env.GuardianDB.enabled)
+    assert(not ns.initialized and env.KinwardDB == nil)
+    event("Kinward")
+    assert(ns.initialized and ns.settings == env.KinwardDB and env.KinwardDB.enabled)
     assert(not registered.ADDON_LOADED)
 end)
 test("load initialization preserves saved disabled preference", function()
     local saved = { enabled = false }
     local ns, env, event = client(saved)
-    event("Guardian")
-    assert(ns.initialized and env.GuardianDB == saved and not ns.settings.enabled)
+    event("Kinward")
+    assert(ns.initialized and env.KinwardDB == saved and not ns.settings.enabled)
 end)
 test("slash command reports version and initialization state", function()
     local _, env, event, messages = client()
-    assert(env.SLASH_GUARDIAN1 == "/guardian")
-    env.SlashCmdList.GUARDIAN()
-    assert(messages[1] == "Guardian 0.1.0; initialized: false")
-    event("Guardian")
-    env.SlashCmdList.GUARDIAN()
-    assert(messages[2] == "Guardian 0.1.0; initialized: true")
+    assert(env.SLASH_KINWARD1 == "/kinward")
+    env.SlashCmdList.KINWARD()
+    assert(messages[1] == "Kinward 0.1.0; initialized: false")
+    event("Kinward")
+    env.SlashCmdList.KINWARD()
+    assert(messages[2] == "Kinward 0.1.0; initialized: true")
 end)
 test("minimap launcher initializes once and shares the slash-command dashboard", function()
     local ns, env, event, _, _, button = client()
     assert(button.created == 0 and ns.minimapButton == nil)
     event("OtherAddon")
     assert(button.created == 0)
-    event("Guardian")
+    event("Kinward")
     assert(button.created == 1 and ns.minimapButton == button)
     local shown = {}
     ns.ShowDashboard = function(d)
         shown[#shown + 1] = d
     end
     button.scripts.OnClick(button)
-    env.SlashCmdList.GUARDIAN("ui")
+    env.SlashCmdList.KINWARD("ui")
     button.scripts.OnClick(button)
     assert(#shown == 3 and shown[1] == shown[2] and shown[2] == shown[3])
     assert(shown[1].profile == ns.settings and shown[1].demo == nil)
     ns.InstallMinimapButton()
     assert(button.created == 1)
     button.scripts.OnEnter(button)
-    assert(env.GameTooltip.visible and env.GameTooltip.text:find("Click to open Guardian", 1, true))
+    assert(env.GameTooltip.visible and env.GameTooltip.text:find("Click to open Kinward", 1, true))
     button.scripts.OnLeave(button)
     assert(not env.GameTooltip.visible)
+end)
+test("left drag follows the scaled cursor, persists position and suppresses opening", function()
+    local ns, env, event, _, _, button = client()
+    event("Kinward")
+    local shown = 0
+    ns.ShowDashboard = function()
+        shown = shown + 1
+    end
+    button.scripts.OnMouseDown(button)
+    button.scripts.OnDragStart(button)
+    assert(button.x == 92 and button.y == 0)
+    assert(not env.GameTooltip.visible)
+    env.GetCursorPosition = function()
+        return 200, 400
+    end
+    button.scripts.OnUpdate(button)
+    assert(math.abs(button.x) < 0.001 and button.y == 92)
+    button.scripts.OnDragStop(button)
+    assert(not button.scripts.OnUpdate and ns.settings.minimapAngle == math.pi / 2)
+    button.scripts.OnClick(button)
+    assert(shown == 0)
+    button.scripts.OnMouseDown(button)
+    button.scripts.OnClick(button)
+    assert(shown == 1)
+    local _, _, reload, _, _, restored = client(env.KinwardDB)
+    reload("Kinward")
+    assert(math.abs(restored.x) < 0.001 and restored.y == 92)
+end)
+test("invalid saved minimap positions fall back and hiding stops dragging", function()
+    for _, value in ipairs({ "bad", math.huge, -math.huge, 0 / 0 }) do
+        local ns, _, event, _, _, button = client({ minimapAngle = value })
+        event("Kinward")
+        assert(button.x < 0 and button.y < 0)
+        button.scripts.OnDragStart(button)
+        button.scripts.OnHide(button)
+        assert(not button.scripts.OnUpdate and ns.settings.minimapAngle == 0)
+    end
 end)
 test("minimap initialization retries at login when the minimap loads later", function()
     local ns, env, event, _, registered, button = client()
     local map = env.Minimap
     env.Minimap = false
-    event("Guardian")
+    event("Kinward")
     assert(ns.initialized and button.created == 0 and registered.PLAYER_LOGIN)
     env.Minimap = map
     event(nil, "PLAYER_LOGIN")

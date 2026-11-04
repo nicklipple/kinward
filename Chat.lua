@@ -1,10 +1,10 @@
 local _, ns = ...
----@cast ns GuardianNamespace
+---@cast ns KinwardNamespace
 
 ---No message bodies enter this module. The adapter supplies accessible metadata.
----@param profile GuardianSettings
----@param context fun(): GuardianContext
----@return GuardianChat
+---@param profile KinwardSettings
+---@param context fun(): KinwardContext
+---@return KinwardChat
 function ns.NewChat(profile, context)
     return {
         profile = profile,
@@ -19,10 +19,10 @@ function ns.NewChat(profile, context)
     }
 end
 
----@param chat GuardianChat
+---@param chat KinwardChat
 ---@param channel string
 ---@param direction 'read'|'send'
----@param identity? GuardianIdentity
+---@param identity? KinwardIdentity
 ---@param line? number Accessible positive event line ID, never text-derived.
 ---@return boolean, string
 function ns.ChatDecision(chat, channel, direction, identity, line)

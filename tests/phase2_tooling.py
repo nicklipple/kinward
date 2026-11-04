@@ -17,10 +17,10 @@ tool = load('phase2_simulator', 'scripts/phase2_simulator.py')
 manifest = load('guardian_manifest', 'scripts/manifest.py')
 with tempfile.TemporaryDirectory() as directory:
     root = Path(directory)
-    toc = (ROOT / 'Guardian.toc').read_bytes()
-    for name in ('Guardian.toc', 'Core.lua', 'Minimap.lua', 'Settings.lua', 'Policy.lua', 'Profile.lua', 'Session.lua', 'Requests.lua', 'History.lua', 'HistoryCapture.lua', 'Protocol.lua', 'Family.lua', 'Pairing.lua', 'Transport.lua', 'WoWTransport.lua', 'Activity.lua', 'PairingPanel.lua', 'Dashboard.lua', 'Chat.lua', 'WoWChat.lua'):
+    toc = (ROOT / 'Kinward.toc').read_bytes()
+    for name in ('KinwardIcon.tga', 'Kinward.toc', 'Core.lua', 'Minimap.lua', 'Settings.lua', 'Policy.lua', 'Profile.lua', 'Session.lua', 'Requests.lua', 'History.lua', 'HistoryCapture.lua', 'Protocol.lua', 'Family.lua', 'Pairing.lua', 'Transport.lua', 'WoWTransport.lua', 'Activity.lua', 'PairingPanel.lua', 'Dashboard.lua', 'Chat.lua', 'WoWChat.lua'):
         (root / name).write_bytes((ROOT / name).read_bytes())
-    tool.TOC, tool.STAGED = root / 'Guardian.toc', root / 'Phase2Simulator.lua'
+    tool.TOC, tool.STAGED = root / 'Kinward.toc', root / 'Phase2Simulator.lua'
     manifest.ROOT = manifest.ADDON = root
     manifest.validate()
     tool.toggle('install')

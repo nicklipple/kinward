@@ -21,7 +21,7 @@ setmetatable(env, {
         error("Unexpected global: " .. k)
     end,
     __newindex = function(t, k, v)
-        assert(k == "SLASH_GUARDIANSIM1", "Unexpected global write: " .. k)
+        assert(k == "SLASH_KINWARDSIM1", "Unexpected global write: " .. k)
         rawset(t, k, v)
     end,
 })
@@ -43,7 +43,7 @@ for _, f in ipairs({
     "WoWChat.lua",
     "scripts/probes/Phase2Simulator.lua",
 }) do
-    setfenv(assert(loadfile(f)), env)("Guardian", ns)
+    setfenv(assert(loadfile(f)), env)("Kinward", ns)
 end
 local passed = 0
 local function test(name, body)
@@ -196,6 +196,22 @@ local function withWidgets(body)
         function methods:GetStringHeight()
             return 700
         end
+        function methods:SetupMenu(generator)
+            assert(self.kind == "DropdownButton")
+            local entries = {}
+            local root = {}
+            function root:CreateRadio(caption, isSelected, setSelected)
+                entries[#entries + 1] =
+                    { caption = caption, isSelected = isSelected, setSelected = setSelected }
+            end
+            generator(self, root)
+            self.menu = entries
+            for _, entry in ipairs(entries) do
+                if entry.isSelected() then
+                    self.value = entry.caption
+                end
+            end
+        end
         function methods:SetScrollChild(child)
             self.child = child
         end
@@ -234,7 +250,11 @@ local function withWidgets(body)
     end
     local function find(caption)
         for _, obj in ipairs(frames) do
-            if obj.kind == "Button" and obj.value == caption and visible(obj) then
+            if
+                (obj.kind == "Button" or obj.kind == "DropdownButton")
+                and obj.value == caption
+                and visible(obj)
+            then
                 return obj
             end
         end
@@ -244,6 +264,19 @@ local function withWidgets(body)
         local control = find(caption)
         assert(control.enabled, "Disabled button: " .. caption)
         control.scripts.OnClick(control)
+    end
+    local function selectOption(caption, option)
+        local control = find(caption)
+        assert(control.kind == "DropdownButton")
+        for _, entry in ipairs(control.menu) do
+            if entry.caption == option then
+                entry.setSelected()
+                assert(entry.isSelected())
+                control.value = entry.caption
+                return
+            end
+        end
+        error("No dropdown option: " .. option)
     end
     local function fill(x, y, value)
         for _, obj in ipairs(frames) do
@@ -269,6 +302,7 @@ local function withWidgets(body)
         frames = frames,
         find = find,
         click = click,
+        select = selectOption,
         fill = fill,
         tick = tick,
         visible = visible,
@@ -734,13 +768,13 @@ test("authorized history settings apply with a deadline and prune bounded source
 end)
 test("Activity is a guardian-only browser while Connection keeps diagnostics", function()
     local n, p = paired()
-    append(n, "HIDDEN-BODY-ONLY-FOR-GUARDIAN", "whisper", "blocked")
+    append(n, "HIDDEN-BODY-ONLY-FOR-KINWARD", "whisper", "blocked")
     fetchHistory(n)
     withWidgets(function(ui)
         local child = n.dashboards.child
         ns.ShowDashboard(child)
         for _, w in ipairs(ui.frames) do
-            assert(not tostring(w.value):find("HIDDEN-BODY-ONLY-FOR-GUARDIAN", 1, true))
+            assert(not tostring(w.value):find("HIDDEN-BODY-ONLY-FOR-KINWARD", 1, true))
             if w.kind == "Button" and w.value == "Activity" then
                 assert(not ui.visible(w))
             end
@@ -752,28 +786,102 @@ test("Activity is a guardian-only browser while Connection keeps diagnostics", f
         local seen = false
         for _, w in ipairs(ui.frames) do
             if
-                ui.visible(w) and tostring(w.value):find("HIDDEN-BODY-ONLY-FOR-GUARDIAN", 1, true)
+                ui.visible(w) and tostring(w.value):find("HIDDEN-BODY-ONLY-FOR-KINWARD", 1, true)
             then
                 seen = true
             end
         end
         assert(seen and ui.find("Connection"))
-        ui.click("All channels")
+        ui.select("All channels", "Whispers")
         ui.fill(18, 64, "different-person")
         ui.tick(0.6)
         for _, w in ipairs(ui.frames) do
             if ui.visible(w) then
-                assert(not tostring(w.value):find("HIDDEN-BODY-ONLY-FOR-GUARDIAN", 1, true))
+                assert(not tostring(w.value):find("HIDDEN-BODY-ONLY-FOR-KINWARD", 1, true))
             end
         end
         ui.click("Connection")
         for _, w in ipairs(ui.frames) do
             if ui.visible(w) then
-                assert(not tostring(w.value):find("HIDDEN-BODY-ONLY-FOR-GUARDIAN", 1, true))
+                assert(not tostring(w.value):find("HIDDEN-BODY-ONLY-FOR-KINWARD", 1, true))
             end
         end
     end)
 end)
+test(
+    "Activity dropdown jumps directly to a channel and resets paging without clearing other filters",
+    function()
+        local n = paired()
+        for i = 1, 24 do
+            append(n, "PARTY-BODY-" .. i, "party")
+        end
+        append(n, "GUILD-ALLOWED", "guild")
+        append(n, "GUILD-BLOCKED", "guild", "blocked")
+        append(n, "WHISPER-BODY", "whisper")
+        fetchHistory(n, 60)
+        withWidgets(function(ui)
+            ns.ShowDashboard(n.dashboards.parent)
+            ui.click("Activity")
+            local function contains(body)
+                for _, control in ipairs(ui.frames) do
+                    if ui.visible(control) and tostring(control.value):find(body, 1, true) then
+                        return true
+                    end
+                end
+                return false
+            end
+            local dropdown = ui.find("All channels")
+            assert(dropdown.kind == "DropdownButton" and #dropdown.menu == 8)
+            assert(dropdown.menu[1].isSelected())
+            ui.click("All outcomes") -- Preserve the allowed-reads filter.
+            ui.click("Older")
+            assert(ui.find("Newer").enabled)
+            ui.select("All channels", "Guild") -- Skip Whispers, Party, gaps and Say.
+            ui.tick(0.6)
+            assert(contains("GUILD-ALLOWED") and not contains("GUILD-BLOCKED"))
+            assert(not contains("PARTY-BODY-") and not contains("WHISPER-BODY"))
+            assert(not ui.find("Newer").enabled)
+            assert(dropdown.menu[6].isSelected() and not dropdown.menu[1].isSelected())
+            ui.select("Guild", "Whispers")
+            ui.tick(0.6)
+            assert(contains("WHISPER-BODY") and not contains("GUILD-ALLOWED"))
+            ui.select("Whispers", "All channels")
+            ui.tick(0.6)
+            assert(contains("WHISPER-BODY") and contains("GUILD-ALLOWED"))
+            assert(not contains("GUILD-BLOCKED"))
+        end)
+    end
+)
+
+test("Activity renders escaped chat lines with explicit outcomes in chronological order", function()
+    local n = paired()
+    append(n, "FIRST-CHAT", "party", "allowed")
+    append(
+        n,
+        "SECOND-CHAT |cffff0000spoof|r |Hplayer:spoof|hfake|h\nFORGED-LINE",
+        "whisper",
+        "blocked"
+    )
+    fetchHistory(n)
+    withWidgets(function(ui)
+        ns.ShowDashboard(n.dashboards.parent)
+        ui.click("Activity")
+        local text
+        for _, w in ipairs(ui.frames) do
+            if ui.visible(w) and tostring(w.value):find("FIRST-CHAT", 1, true) then
+                text = w.value
+            end
+        end
+        assert(text)
+        assert(text:find("[Party]", 1, true))
+        assert(text:find("[Whisper]", 1, true))
+        assert(text:find("[Blocked incoming]", 1, true))
+        assert(text:find("||cffff0000spoof||r", 1, true))
+        assert(text:find("||Hplayer:spoof||hfake||h FORGED-LINE", 1, true))
+        assert(text:find("FIRST-CHAT", 1, true) < text:find("SECOND-CHAT", 1, true))
+    end)
+end)
+
 test("Activity switches between children without leaking rows and pages older history", function()
     local n = paired()
     pair(n, "child2", "parent")

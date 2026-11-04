@@ -96,7 +96,7 @@ setmetatable(env, {
         error("Unexpected global read: " .. k)
     end,
     __newindex = function(t, k, v)
-        assert(k == "SLASH_GUARDIANSIM1", "Unexpected global write: " .. k)
+        assert(k == "SLASH_KINWARDSIM1", "Unexpected global write: " .. k)
         rawset(t, k, v)
     end,
 })
@@ -118,7 +118,7 @@ for _, file in ipairs({
     "WoWChat.lua",
     "scripts/probes/Phase2Simulator.lua",
 }) do
-    setfenv(assert(loadfile(file)), env)("Guardian", ns)
+    setfenv(assert(loadfile(file)), env)("Kinward", ns)
 end
 local passed = 0
 local function test(name, body)
@@ -229,7 +229,7 @@ test("character approval is bidirectional and normalizes local/cross-realm targe
     assert(incoming("CHAT_MSG_WHISPER", nil, 3))
     assert(incoming("CHAT_MSG_WHISPER", secret, 4))
 end)
-test("verified friend/guardian identity is refreshed and never inferred from names", function()
+test("verified friend/kinward identity is refreshed and never inferred from names", function()
     local p = profile()
     p.policy.whispers.friend = { mode = "indefinite", kind = "account", target = "friend-account" }
     start(p)
@@ -239,8 +239,8 @@ test("verified friend/guardian identity is refreshed and never inferred from nam
     account = nil -- Friendship removal / unresolved alt.
     assert(incoming("CHAT_MSG_WHISPER", "Friend", 3))
     account = "parent"
-    assert(not incoming("CHAT_MSG_WHISPER", "GuardianAlt", 4))
-    env.C_ChatInfo.SendChatMessage("text", "WHISPER", nil, "GuardianAlt")
+    assert(not incoming("CHAT_MSG_WHISPER", "KinwardAlt", 4))
+    env.C_ChatInfo.SendChatMessage("text", "WHISPER", nil, "KinwardAlt")
     assert(#sends == 1)
     account = secret
     assert(incoming("CHAT_MSG_WHISPER", "Friend", 5))
@@ -489,7 +489,7 @@ test(
     end
 )
 test("simulator chat commands remain isolated and simulate reload versus login", function()
-    local command = env.SlashCmdList.GUARDIANSIM
+    local command = env.SlashCmdList.KINWARDSIM
     command("network-reset")
     command("network-chat child read party Friend-TestRealm unused 1")
     assert(notices[#notices]:find("allowed; unpaired", 1, true))

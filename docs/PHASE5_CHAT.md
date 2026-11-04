@@ -55,7 +55,7 @@ the sample `enabled` preference cannot bypass an installed policy.
 - Ordinary whisper grants remain bidirectional. Character names are normalized
   with an explicit realm; names without a realm use the candidate engine local
   realm. Unknown, invalid or secret identity cannot satisfy a whisper grant.
-  Party permission cannot authorize a whisper. Guardian communication requires
+  Party permission cannot authorize a whisper. Kinward communication requires
   the same current verified account mapping, never a familiar display name.
 - The candidate resolver enumerates up to 200 friends/32 games each, rejecting
   overflow, missing/inaccessible relevant data and conflicting ownership. It
@@ -124,22 +124,22 @@ chat coverage, tamper resistance or history capture is claimed.
 ## Single-client fixture walkthrough
 
 Stage with `python3 scripts/phase2_simulator.py install`, then reload. Use the
-Phase 4 visual demo (`/guardian demo`) or its documented network commands to pair
+Phase 4 visual demo (`/kinward demo`) or its documented network commands to pair
 `parent` and `child` and sync the guardian's child profile. All following chat
 commands evaluate fixture metadata only; they never send/filter live chat or
-access GuardianDB. `network-chat ENDPOINT read|send CHANNEL CHARACTER ACCOUNT
+access KinwardDB. `network-chat ENDPOINT read|send CHANNEL CHARACTER ACCOUNT
 LINE_ID` accepts `unused` placeholders where identity/line is irrelevant.
 
-1. `/guardiansim network-chat child read party Friend-TestRealm unused 1`
+1. `/kinwardsim network-chat child read party Friend-TestRealm unused 1`
    reports blocked after pairing. Repeat with the same line to exercise dedup.
-2. `/guardiansim network parent allow child party read`, then
-   `/guardiansim network-pump 5`. Read with line 2 is allowed; send remains blocked.
+2. `/kinwardsim network parent allow child party read`, then
+   `/kinwardsim network-pump 5`. Read with line 2 is allowed; send remains blocked.
 3. Allow party send separately, pump, and check send. Deny party read, pump, and
    read with line 3; expect blocked while send stays allowed.
-4. `/guardiansim network parent allow child whisper-character read Friend-TestRealm`,
+4. `/kinwardsim network parent allow child whisper-character read Friend-TestRealm`,
    pump, then check whisper read/send with `Friend-TestRealm unused` and new line
    IDs. Both allow; `Stranger-TestRealm` stays blocked despite party permission.
-5. `/guardiansim network-connect parent off`: already applied permission continues.
+5. `/kinwardsim network-connect parent off`: already applied permission continues.
    Reconnect, deny the same whisper target, pump, and check a new line; it blocks.
 6. `network-login child` and `network-reload child` exercise injected fixture
    tokens only. Automated tests cover duration/session grants through actual
@@ -181,7 +181,7 @@ release contents. Neither substitutes for this pending client checklist.
 
 
 Phase 6 extends the shared Chat decision with bounded sender-only prompts and an
-optional candidate `GuardianChatIO.prompt(character)` callback. The fallback
+optional candidate `KinwardChatIO.prompt(character)` callback. The fallback
 notice includes only accessible sender identity and directs the child to the
 Requests UI. No body is passed to either. See PHASE6_REQUESTS.md for preference,
 rate limits, approval and integration contracts; the live gates above remain open.

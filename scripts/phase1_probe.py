@@ -5,8 +5,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'scripts/probes/Phase1Probe.lua'
 STAGED = ROOT / 'Phase1Probe.lua'
-TOC = ROOT / 'Guardian.toc'
-ENTRY = '\n# Guardian phase 1 development probe (do not release)\nPhase1Probe.lua\n'
+TOC = ROOT / 'Kinward.toc'
+ENTRY = '\n# Kinward phase 1 development probe (do not release)\nPhase1Probe.lua\n'
 
 
 def toggle(action):
@@ -20,7 +20,7 @@ def toggle(action):
         except OSError:
             STAGED.unlink()
             raise
-        print('Probe staged, inactive. Reload client; then /guardianprobe start.')
+        print('Probe staged, inactive. Reload client; then /kinwardprobe start.')
     elif action == 'remove':
         if ENTRY not in toc:
             raise ValueError('Exact probe TOC marker missing; refusing to alter files')

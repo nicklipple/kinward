@@ -1,5 +1,5 @@
 local _, ns = ...
----@cast ns GuardianNamespace
+---@cast ns KinwardNamespace
 
 local function once(chat, key)
     chat.captureSeen, chat.captureOrder = chat.captureSeen or {}, chat.captureOrder or {}
@@ -17,7 +17,7 @@ local function live(chat)
     return chat.monitoring and chat.profile.supervision == "paired"
 end
 
----@param chat GuardianChat
+---@param chat KinwardChat
 ---@param reason string Fixed accessible description; never secret data.
 ---@param since? number
 function ns.HistoryGap(chat, reason, since)
@@ -37,9 +37,9 @@ function ns.HistoryGap(chat, reason, since)
     )
 end
 
----@param chat GuardianChat
+---@param chat KinwardChat
 ---@param channel string
----@param identity GuardianIdentity?
+---@param identity KinwardIdentity?
 ---@param body string? nil means inaccessible; the boundary never passes a secret.
 ---@param allowed boolean
 ---@param line number?
@@ -74,7 +74,7 @@ function ns.CaptureRead(chat, channel, identity, body, allowed, line, gapReason)
     )
 end
 
----@param chat GuardianChat
+---@param chat KinwardChat
 ---@param force? boolean
 function ns.FlushHistorySends(chat, force)
     local now, keep = chat.context().now, {}
@@ -116,9 +116,9 @@ function ns.FlushHistorySends(chat, force)
     chat.recentCaptures = recent
 end
 
----@param chat GuardianChat
+---@param chat KinwardChat
 ---@param channel string
----@param identity GuardianIdentity?
+---@param identity KinwardIdentity?
 ---@param body string?
 ---@param allowed boolean
 function ns.CaptureSend(chat, channel, identity, body, allowed)
@@ -148,9 +148,9 @@ function ns.CaptureSend(chat, channel, identity, body, allowed)
     end
 end
 
----@param chat GuardianChat
+---@param chat KinwardChat
 ---@param channel string
----@param identity GuardianIdentity?
+---@param identity KinwardIdentity?
 ---@param body string?
 ---@param line number?
 function ns.CaptureOutput(chat, channel, identity, body, line)
@@ -215,7 +215,7 @@ function ns.CaptureOutput(chat, channel, identity, body, line)
     end
 end
 
----@param chat GuardianChat
+---@param chat KinwardChat
 ---@param restricted boolean
 function ns.HistoryHeartbeat(chat, restricted)
     if not live(chat) then

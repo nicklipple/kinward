@@ -51,13 +51,13 @@ local env = {
     C_ChatInfo = {
         SendChatMessage = send,
         RegisterAddonMessagePrefix = function(prefix)
-            assert(prefix == "GuardianP1")
+            assert(prefix == "KinwardP1")
             return 0
         end,
         SendAddonMessage = function(prefix, body, route, target)
             assert(
-                prefix == "GuardianP1"
-                    and body == "GUARDIAN-P1"
+                prefix == "KinwardP1"
+                    and body == "KINWARD-P1"
                     and route == "WHISPER"
                     and target == "Peer-Realm"
             )
@@ -72,7 +72,7 @@ local env = {
     },
     C_BattleNet = {
         SendGameData = function(id, prefix, body)
-            assert(id == 42 and prefix == "GuardianP1" and body == "GUARDIAN-P1")
+            assert(id == 42 and prefix == "KinwardP1" and body == "KINWARD-P1")
             return 0
         end,
     },
@@ -83,8 +83,8 @@ setmetatable(env, {
     end,
 })
 setfenv(assert(loadfile(source)), env)()
-local command = env.SlashCmdList.GUARDIANPROBE
-assert(env.SLASH_GUARDIANPROBE1 == "/guardianprobe")
+local command = env.SlashCmdList.KINWARDPROBE
+assert(env.SLASH_KINWARDPROBE1 == "/kinwardprobe")
 assert(env.C_ChatInfo.SendChatMessage == send and next(filters) == nil)
 frame.callback(frame, "PLAYER_ENTERING_WORLD", true, false)
 command("status")
@@ -92,20 +92,20 @@ command("start")
 command("start") -- idempotent
 local wrapper = env.C_ChatInfo.SendChatMessage
 assert(wrapper ~= send)
-assert(wrapper("GUARDIAN-P1 blocked", "WHISPER", nil, "Peer") == nil and sends == 0)
+assert(wrapper("KINWARD-P1 blocked", "WHISPER", nil, "Peer") == nil and sends == 0)
 assert(wrapper("ordinary text", "SAY") == "sent" and sends == 1)
 assert(wrapper(secret) == "sent" and sends == 2) -- no comparison of inaccessible data
-assert(filters.CHAT_MSG_WHISPER(nil, nil, "GUARDIAN-P1 hidden"))
+assert(filters.CHAT_MSG_WHISPER(nil, nil, "KINWARD-P1 hidden"))
 assert(not filters.CHAT_MSG_WHISPER(nil, nil, "ordinary text"))
 assert(not filters.CHAT_MSG_WHISPER(nil, nil, secret))
 command("char Peer-Realm")
 command("bn 42")
-frame.callback(frame, "BN_CHAT_MSG_ADDON", "GuardianP1", secret, "WHISPER", secret)
+frame.callback(frame, "BN_CHAT_MSG_ADDON", "KinwardP1", secret, "WHISPER", secret)
 frame.callback(frame, "CHAT_MSG_ADDON", secret, secret, secret, secret)
 command("status")
 command("stop")
 assert(env.C_ChatInfo.SendChatMessage == send and next(filters) == nil and next(registered) == nil)
-assert(wrapper("GUARDIAN-P1 after stop") == "sent") -- cached wrappers must pass through
+assert(wrapper("KINWARD-P1 after stop") == "sent") -- cached wrappers must pass through
 command("start")
 local ours = env.C_ChatInfo.SendChatMessage
 local other = function(...)
@@ -114,7 +114,7 @@ end
 env.C_ChatInfo.SendChatMessage = other
 command("stop")
 assert(env.C_ChatInfo.SendChatMessage == other) -- never overwrite another addon
-assert(other("GUARDIAN-P1 after chained stop") == "sent")
+assert(other("KINWARD-P1 after chained stop") == "sent")
 print(
     "ok - phase 1 probe activation, filtering, send prevention boundary, secret handling, routes and cleanup (mocked)"
 )

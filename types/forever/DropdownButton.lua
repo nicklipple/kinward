@@ -1,0 +1,8 @@
+---@meta
+-- Forever 1.60.1.70755, Gethe 17ed2c3e8471cdc3806ab0d26a082be7c67d3d7c.
+-- Interface/AddOns/Blizzard_Menu/DropdownButton.lua: DropdownButtonMixin:SetupMenu
+-- takes a generator receiving the dropdown and root description. The native
+-- WowStyle1DropdownTemplate displays the selected radio's text automatically;
+-- see Blizzard_Menu/11_0_0_MenuImplementationGuide.lua and MenuTemplates.xml.
+---@class DropdownButtonMixin
+---@field SetupMenu fun(self: DropdownButton, generator: fun(dropdown: DropdownButton, rootDescription: RootMenuDescriptionProxy))

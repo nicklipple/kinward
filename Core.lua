@@ -1,6 +1,6 @@
 local addonName, ns = ...
 ---@cast addonName string
----@cast ns GuardianNamespace
+---@cast ns KinwardNamespace
 
 ns.initialized = false
 
@@ -14,14 +14,14 @@ function ns.OpenDashboard()
     ns.ShowDashboard(ns.dashboard)
 end
 
-SLASH_GUARDIAN1 = "/guardian"
-SlashCmdList.GUARDIAN = function(message)
+SLASH_KINWARD1 = "/kinward"
+SlashCmdList.KINWARD = function(message)
     if ns.initialized and message and message ~= "" then
         if message == "demo" then
             if ns.ShowNetworkDemo then
                 ns.ShowNetworkDemo()
             else
-                print("Guardian: stage the development simulator, reload, then /guardian demo.")
+                print("Kinward: stage the development simulator, reload, then /kinward demo.")
             end
             return
         end
@@ -35,7 +35,7 @@ SlashCmdList.GUARDIAN = function(message)
         return
     end
     local version = C_AddOns.GetAddOnMetadata(addonName, "Version") or "unknown"
-    print(string.format("Guardian %s; initialized: %s", version, tostring(ns.initialized)))
+    print(string.format("Kinward %s; initialized: %s", version, tostring(ns.initialized)))
 end
 
 local frame = CreateFrame("Frame")
@@ -49,9 +49,9 @@ frame:SetScript("OnEvent", function(self, event, loadedAddon)
     if event ~= "ADDON_LOADED" or loadedAddon ~= addonName then
         return
     end
-    GuardianDB = ns.NormalizeSettings(GuardianDB)
-    ns.PruneProfileHistory(GuardianDB, GetServerTime())
-    ns.settings = GuardianDB
+    KinwardDB = ns.NormalizeSettings(KinwardDB)
+    ns.PruneProfileHistory(KinwardDB, GetServerTime())
+    ns.settings = KinwardDB
     ns.initialized = true
     if not ns.InstallMinimapButton() then
         self:RegisterEvent("PLAYER_LOGIN")

@@ -1,4 +1,4 @@
-# Guardian implementation plan
+# Kinward implementation plan
 
 Status: Phases 2–3 shared logic and Phase 4 transport/dashboard implementation are available.
 Phase 4 live activation and two-account acceptance remain gated by P1-ID/P1-ROUTE.
@@ -31,7 +31,7 @@ record Retail observations separately while developing in `_retail_`.
 The repository already has initialization, saved settings, a slash command,
 pinned dependencies, static analysis, strict Lua 5.1 tests, manifest validation,
 packaging and CI. Runtime files live at the repository root in
-`_retail_/Interface/AddOns/Guardian/`.
+`_retail_/Interface/AddOns/Kinward/`.
 
 This phase provides no pairing, restrictions or monitoring.
 
@@ -82,7 +82,7 @@ Phase 1 is not marked verified by this deferral or by simulator results.
 
 Purpose: make the rules deterministic and testable without the game.
 
-- [x] **2.1 Versioned account profile.** Migrate the existing `GuardianDB` into a
+- [x] **2.1 Versioned account profile.** Migrate the existing `KinwardDB` into a
   documented schema for role, family relationships, pairing generation, policy
   and bounded queues. Preserve valid data; distinguish absent initial data from
   damaged paired state so corruption cannot silently remove supervision.
@@ -191,7 +191,7 @@ unverified gate; the simulator does not satisfy it.
 Implemented: `Transport.lua`, `WoWTransport.lua` and `Dashboard.lua`, with bounded
 fragmentation, rate limits, receipts, retries, deadlines, child revisions,
 revision-bound snapshots, per-setting views, a visual dashboard with child selection and dedicated permission/family controls and an
-isolated network harness. `/guardian ui` opens the local dashboard. See
+isolated network harness. `/kinward ui` opens the local dashboard. See
 [contracts, source evidence and walkthrough](docs/PHASE4_TRANSPORT.md).
 Tasks 4.1–4.2 remain unchecked because the candidate Battle.net adapter cannot
 be activated until Phase 1 validates the route, sender identity and local
@@ -249,7 +249,7 @@ No actual client test was performed; no Phase 1 or Phase 4 gate is closed.
 - [x] **6.2 Blocked-whisper prompt.** Show the sender's character name, hide their
   message body, and offer a request to read/send whispers. Respect the guardian
   prompt setting; suppress duplicates and limit notification floods.
-- [x] **6.3 Guardian approval UI.** Show the exact scope, identity and reason.
+- [x] **6.3 Kinward approval UI.** Show the exact scope, identity and reason.
   Offer indefinite, until-logout and explicit durations such as 15m/45m. Bind an
   approval to its request/target; do not treat it as permission for other channels.
 - [x] **6.4 Apply and acknowledge.** Route grants through the existing policy
@@ -293,7 +293,7 @@ No real chat is intercepted or request delivered between accounts by Core.
   with batch limits, sequence/cursor tracking, deduplication and resumable catchup.
   Prioritize control messages and requests ahead of history backlog. Recheck
   authorization when sending, not just when originally queuing a record.
-- [x] **7.4 Guardian viewer.** Add per-child live/history views, channel and
+- [x] **7.4 Kinward viewer.** Add per-child live/history views, channel and
   disposition filters, catchup progress and monitoring-gap indicators. Keep
   blocked text out of child-visible widgets, debug output and simulator/live
   crossover. Clearly indicate to the child that monitoring is active.
@@ -359,7 +359,7 @@ prevention or identity problems are not hidden behind a passing simulator.
 | Paired control | 3–4; phase 1 routing verified | A real guardian changes an acknowledged child policy. |
 | First usable slice | 5; phase 1 enforcement verified | Whispers/party are independently readable/sendable as approved. |
 | Child self-service | 6 | Child requests access; guardian grants it with expiry. |
-| Reviewable supervision | 7 | Guardian sees accessible history and explicit gaps. |
+| Reviewable supervision | 7 | Kinward sees accessible history and explicit gaps. |
 | First release | 8; all required client gates passed | Supported channels/surfaces and limits are documented and tested. |
 
 Phase 1 evidence and probe procedures are in [docs/CAPABILITIES.md](docs/CAPABILITIES.md)

@@ -1,5 +1,5 @@
 -- Development only. Staged by scripts/phase1_probe.py; never ship this file.
-local marker, prefix = "GUARDIAN-P1", "GuardianP1"
+local marker, prefix = "KINWARD-P1", "KinwardP1"
 local active = false
 local originalSend, wrappedSend
 local incoming, outgoing, received = 0, 0, 0
@@ -10,9 +10,9 @@ local initialLogin, reloading
 
 local function report(label, value)
     if canaccessvalue(value) then
-        print("Guardian probe: " .. label .. "=" .. tostring(value))
+        print("Kinward probe: " .. label .. "=" .. tostring(value))
     else
-        print("Guardian probe: " .. label .. "=<inaccessible>")
+        print("Kinward probe: " .. label .. "=<inaccessible>")
     end
 end
 
@@ -38,11 +38,11 @@ local function stop()
         C_ChatInfo.SendChatMessage = originalSend
     elseif wrappedSend then
         print(
-            "Guardian probe: send function changed by another addon; reload required to remove chained wrapper"
+            "Kinward probe: send function changed by another addon; reload required to remove chained wrapper"
         )
     end
     originalSend, wrappedSend = nil, nil
-    print("Guardian probe: stopped; reload to clear taint and registered prefix")
+    print("Kinward probe: stopped; reload to clear taint and registered prefix")
 end
 
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -65,7 +65,7 @@ frame:SetScript("OnEvent", function(_, event, a, b, _, sender)
     end
 end)
 
-SlashCmdList.GUARDIANPROBE = function(input)
+SlashCmdList.KINWARDPROBE = function(input)
     local command, target = input:match("^(%S+)%s*(.-)%s*$")
     if command == "stop" then
         stop()
@@ -87,7 +87,7 @@ SlashCmdList.GUARDIANPROBE = function(input)
         wrappedSend = function(text, ...)
             if active and matches(text) then
                 outgoing = outgoing + 1
-                print("Guardian probe: prevented marker at C_ChatInfo.SendChatMessage boundary")
+                print("Kinward probe: prevented marker at C_ChatInfo.SendChatMessage boundary")
                 return
             end
             return send(text, ...)
@@ -110,7 +110,7 @@ SlashCmdList.GUARDIANPROBE = function(input)
             frame:RegisterEvent(event)
         end
         report("prefix registration result", C_ChatInfo.RegisterAddonMessagePrefix(prefix))
-        print("Guardian probe: active; only GUARDIAN-P1-prefixed text is filtered/prevented")
+        print("Kinward probe: active; only KINWARD-P1-prefixed text is filtered/prevented")
     elseif command == "status" then
         report("active", active)
         report("filter callbacks discarded (not unique messages)", incoming)
@@ -134,9 +134,9 @@ SlashCmdList.GUARDIANPROBE = function(input)
         )
     else
         print(
-            "Guardian probe: start | stop | status | char Name-Realm | bn gameAccountID; see docs/PHASE1_PROBES.md"
+            "Kinward probe: start | stop | status | char Name-Realm | bn gameAccountID; see docs/PHASE1_PROBES.md"
         )
     end
 end
 -- Intentional development-only slash global, typed in types/addon.lua.
-SLASH_GUARDIANPROBE1 = "/guardianprobe"
+SLASH_KINWARDPROBE1 = "/kinwardprobe"

@@ -23,16 +23,16 @@ def probe(name, path, extra, command, expected):
     finally:
         path.write_bytes(original)
 
-probe('undefined-api', ROOT / 'Core.lua', '\nGuardianDefinitelyMissingAPI()\n',
+probe('undefined-api', ROOT / 'Core.lua', '\nKinwardDefinitelyMissingAPI()\n',
       ['python3', 'scripts/lint.py'], 'undefined-global')
-probe('unused-local-warning', ROOT / 'Core.lua', '\nlocal unusedGuardianProbe = 1\n',
+probe('unused-local-warning', ROOT / 'Core.lua', '\nlocal unusedKinwardProbe = 1\n',
       ['python3', 'scripts/lint.py'], 'unused-local')
-probe('accidental-global', ROOT / 'Core.lua', '\nGuardianAccidentalGlobal = true\n',
+probe('accidental-global', ROOT / 'Core.lua', '\nKinwardAccidentalGlobal = true\n',
       ['python3', 'scripts/lint.py'], 'global-element')
-probe('invalid-field', ROOT / 'Core.lua', '\nprint(ns.missingGuardianField)\n',
+probe('invalid-field', ROOT / 'Core.lua', '\nprint(ns.missingKinwardField)\n',
       ['python3', 'scripts/lint.py'], 'undefined-field')
 probe('incorrect-argument', ROOT / 'Core.lua', '\nC_AddOns.GetAddOnMetadata(true, \"Version\")\n',
       ['python3', 'scripts/lint.py'], 'param-type-mismatch')
-probe('missing-toc-file', ROOT / 'Guardian.toc', 'Missing.lua\n',
+probe('missing-toc-file', ROOT / 'Kinward.toc', 'Missing.lua\n',
       ['python3', 'scripts/manifest.py'], 'Missing.lua')
 subprocess.run(['make', 'check'], check=True)

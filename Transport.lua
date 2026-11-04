@@ -1,10 +1,10 @@
 local _, ns = ...
----@cast ns GuardianNamespace
+---@cast ns KinwardNamespace
 
 -- All clocks, identity and I/O are injected. No numeric WoW handle is persisted.
----@param family GuardianFamily
----@param io GuardianTransportIO
----@return GuardianTransport
+---@param family KinwardFamily
+---@param io KinwardTransportIO
+---@return KinwardTransport
 function ns.NewTransport(family, io)
     return {
         family = family,
@@ -98,12 +98,12 @@ local function enqueue(t, peer, wire, deadline, reply)
     return item
 end
 
----@param t GuardianTransport
+---@param t KinwardTransport
 ---@param peer string
 ---@param kind string
 ---@param args string[]
 ---@param seconds? number
----@return GuardianDelivery?, string
+---@return KinwardDelivery?, string
 function ns.TransportRequest(t, peer, kind, args, seconds)
     local now = t.io.now()
     seconds = seconds or 60
@@ -171,7 +171,7 @@ function ns.TransportRequest(t, peer, kind, args, seconds)
     return item, item and "queued" or "queue-full"
 end
 
----@param t GuardianTransport
+---@param t KinwardTransport
 ---@param peer string
 ---@return string, number?
 function ns.TransportPresence(t, peer)
@@ -439,7 +439,7 @@ end
 
 -- Called only after an adapter authenticates the transport sender. Bound all
 -- allocations before accepting fragments, including those from unpaired friends.
----@param t GuardianTransport
+---@param t KinwardTransport
 ---@param peer string
 ---@param packet unknown
 ---@return boolean
@@ -540,7 +540,7 @@ function ns.TransportReceive(t, peer, packet)
     return ok
 end
 
----@param t GuardianTransport
+---@param t KinwardTransport
 function ns.TransportTick(t)
     local now = t.io.now()
     for key, assembly in pairs(t.incoming) do

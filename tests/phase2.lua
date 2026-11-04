@@ -21,7 +21,7 @@ setmetatable(env, {
         error("Unexpected global read: " .. key)
     end,
     __newindex = function(t, key, value)
-        assert(key == "SLASH_GUARDIANSIM1", "Unexpected global write: " .. key)
+        assert(key == "SLASH_KINWARDSIM1", "Unexpected global write: " .. key)
         rawset(t, key, value)
     end,
 })
@@ -39,7 +39,7 @@ for _, file in ipairs({
     "scripts/probes/Phase2Simulator.lua",
 }) do
     local chunk = assert(loadfile(file))
-    setfenv(chunk, env)("Guardian", ns)
+    setfenv(chunk, env)("Kinward", ns)
 end
 ns.settings = live
 local passed = 0
@@ -299,7 +299,7 @@ test("reordered distinct writes apply in delivery order and queues snapshot fiel
     assert(not allows(p, ns.SimContext(sim, "child")))
 end)
 test("command-driven demo and clocks never access live saved state or APIs", function()
-    local command = commands.GUARDIANSIM
+    local command = commands.KINWARDSIM
     command("reset")
     command("check child party read")
     assert(output[#output]:find("allowed=false", 1, true))
