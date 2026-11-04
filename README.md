@@ -77,3 +77,40 @@ Manual smoke test in the Forever client:
 Secret values, protected actions, taint and combat lockdown require real-client
 testing when applicable to added features. This scaffold does not implement
 combat or protected actions. No in-game verification is claimed.
+
+
+Phase 5 adds candidate ordinary whisper/party chat boundaries and isolated
+network-to-chat scenarios. Live enforcement remains inactive pending the Phase 1
+and Phase 4 client gates. See [Phase 5 scope and checklists](docs/PHASE5_CHAT.md)
+for simulator commands, source evidence and uncovered routes.
+
+
+Phase 6 adds a **Requests** tab for child requests and guardian approvals:
+indefinite, until logout, 15 minutes or 45 minutes. **Connection** retains delivery
+diagnostics; chat histories remain Phase 7. [Request contracts and the isolated
+demo](docs/PHASE6_REQUESTS.md) cover offline requests, sender-only whisper prompts,
+expiry and cancellation. Live transport/enforcement and client privacy acceptance
+remain gated; the staged demo shares production logic with fixture data only.
+
+
+Phase 7 implements the guardian **Activity** browser for captured child chat,
+with per-child/channel/time/conversation/outcome filters and bounded reconnect
+catchup. **Connection** stays separate for diagnostics. Development retention
+defaults are seven days/10,000 rows; blocked bodies stay out of child/debug views.
+[History scope, privacy and demo](docs/PHASE7_HISTORY.md) document the candidate
+capture surfaces and limitations. Live activation, real-client coverage/privacy
+and two-account delivery are still unverified; demo history is synthetic only.
+
+
+Pairing is now **child requests by guardian name → guardian clicks Accept child**.
+There are no manual code/operation fields. A second guardian still needs approval
+from an existing guardian, also through buttons. See [pairing walkthrough](docs/PAIRING.md).
+The simulator is left enabled in this development checkout; reload and use
+`/guardian demo`, enter `parent` on child, then accept on parent. Live routing and
+identity remain gated; this demonstration uses isolated fixtures.
+
+
+Click the shield button at the minimap's lower-left edge to open Guardian.
+It opens the same local dashboard as `/guardian ui`; the Single-session demo
+button inside the dashboard remains available when the development simulator is
+staged. Reload after updating to see the minimap launcher.

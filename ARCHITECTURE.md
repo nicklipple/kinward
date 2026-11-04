@@ -212,3 +212,123 @@ automatic fixture-clock advancement and outage controls. Its frame driver is
 created only on explicit demo activation and never obtains live SavedVariables
 or messaging. Additional widget APIs are pinned in PHASE4_TRANSPORT.md. No actual
 in-game rendering or protected-state verification is claimed by mock tests.
+
+
+## Phase 5 candidate chat boundaries
+
+The TOC loads `Chat.lua` and `WoWChat.lua` after Dashboard, before Settings/Core.
+Chat is pure metadata-only policy/deduplication logic. WoWChat declares a gated
+factory and current friend resolver; neither is called at load or by Core.
+A future verified bootstrap must install after own-ADDON_LOADED normalization,
+before supported chat, with accepted boundary/identity/lifecycle inputs. No live
+send wrapper or filter is active in this checkout. Candidate filters cover
+ordinary whispers/party; candidate outgoing interception covers current ordinary
+WHISPER/PARTY send calls. Reload/session logic fails closed for unresolved
+session grants, while clocks, mappings and current policy are reevaluated.
+
+The staged network harness gives each independent endpoint a Chat instance;
+commands never obtain live SavedVariables or chat APIs. Strict adapter tests use
+sentinel secret values and actual TOC initialization tests ensure loading remains
+inert. New APIs are evidenced in [Phase 5 contracts](docs/PHASE5_CHAT.md), along
+with bounded caches, attempt/output distinctions and pending client checklists.
+No new globals, libraries or profile schema version are introduced. The known
+secret-filter bypass, cached/engine sends, taint and other surfaces prevent a
+claim of global enforcement. Client and two-account acceptance remain open.
+
+
+## Phase 6 requests and approvals
+
+`Requests.lua` loads after Session and before Protocol. It declares pure request
+validation, bounded persistence, expiry/cancellation, inbox page handling and
+sender-only prompt logic. Profile normalization calls its validators only after
+all modules load, on own ADDON_LOADED as before. Family gates request operations
+by current verified guardian/generation and durable replay. Approvals delegate to
+the existing policy mutation/revision path; duration begins on child application,
+while session/base-revision/freshness/deadline checks reject stale decisions.
+
+The dashboard adds Requests for both roles and retains Connection for diagnostic
+traffic. Its optional Chat argument binds fixture/live prompt metadata explicitly;
+no simulator model obtains `ns.settings` or live chat. The candidate WoW filter
+reports only accessible sender identity, with a default safe notification or an
+injected prompt callback for a future verified bootstrap. No new WoW APIs,
+globals, runtime libraries or profile schema version are introduced. Existing
+widget API evidence applies; real rendering/privacy, taint, actual transport and
+session/chat enforcement remain client gates. [Phase 6 contracts](docs/PHASE6_REQUESTS.md)
+document wire fields, persistent/transient state, polls, UI and acceptance.
+
+
+## Phase 7 history and Activity
+
+`History.lua` and `HistoryCapture.lua` load after Requests, before Protocol;
+`Activity.lua` loads before Dashboard. They declare pure storage/capture/delivery
+helpers and a lazy widget factory. Profile normalization validates optional
+source and per-child cache history; Core prunes age-limited data only after its
+own ADDON_LOADED. No live adapter activation was added. Candidate WoWChat capture
+checks accessibility before forwarding text to pure logic, and explicitly
+requires verified local identity for party self-echo classification. Source gaps,
+retention/count loss, send attempts and observed output remain distinct.
+
+Current guardians fetch bounded cursor batches through the existing authenticated
+transport. History jobs have reserved bounds and run after control/request work;
+queued replies recheck authorization before every fragment. Guardian cursors and
+received data persist; pending correlations/watchers/delivery are transient.
+Membership generation changes reset guardian views; stop/re-pair clears source
+history. The Activity viewer is guardian-only and never feeds child/debug widgets.
+Its separate closure stays within Lua 5.1's sixty-upvalue limit. The new date
+formatter has pinned Forever source evidence in [Phase 7 contracts](docs/PHASE7_HISTORY.md).
+All actual client capture/privacy/taint/delivery coverage remains unverified.
+
+
+## Name-based guardianship requests
+
+`Pairing.lua` loads after Family and before Transport; `PairingPanel.lua` loads
+before Dashboard. Their functions are inert until explicitly called. Children
+request a resolved verified friend and guardians accept/decline a token-bound
+inbox card. First acceptance reuses atomic closed-default Family confirmation;
+additional guardians require the existing authorized add operation with a fetched
+candidate, then automatic sync. The short-code engine remains for old fixtures,
+while its manual code/operation inputs have been removed from the normal UI.
+
+The candidate adapter resolves current verified friend aliases and rejects
+ambiguity/incomplete records. New inbound requests notify/focus Family only for
+the verified live profile, reusing its existing dashboard; no simulator profile
+can open a live pairing window. The UI previews the resolved account and checks
+it again at the request click. No new WoW API, global or randomness source was
+added. The existing token supplier's live guarantees and P1-ID/P1-ROUTE bootstrap
+remain unverified. A validated optional receipt persists a successful acceptance
+for retry/reload; pending proposals/inboxes remain transient and bounded. See
+[handshake contracts](docs/PAIRING.md).
+
+
+## Minimap launcher
+
+`Minimap.lua` loads before Core and declares an idempotent installer. Own
+ADDON_LOADED initializes settings, then creates one anonymous shield button
+parented to the existing Minimap; if the map is not available yet, Core retries
+on PLAYER_LOGIN. The button's left click and `/guardian ui` share OpenDashboard,
+reusing the same live local model without selecting or creating simulator state.
+Hover shows a simple tooltip. The launcher adds no globals, saved fields or
+runtime dependencies and does not activate chat or transport.
+
+Evidence is in the pinned Forever source (Gethe
+17ed2c3e8471cdc3806ab0d26a082be7c67d3d7c), relative to
+reference/blizzard-ui/Interface/AddOns/:
+
+- Blizzard_Minimap/Blizzard_Minimap.toc and Mainline/Minimap.xml declare the
+  Minimap and tooltip dependency; Camelot/Minimap.lua uses frame levels.
+- Blizzard_APIDocumentationGenerated/SimpleButtonAPIDocumentation.lua declares
+  RegisterForClicks, SetNormalTexture and SetHighlightTexture;
+  SimpleFrameAPIDocumentation.lua declares GetFrameLevel/SetFrameLevel. Existing
+  frame/texture sizing, anchoring, creation and script methods retain Phase 4 evidence.
+- Blizzard_Minimap/Shared/ExternalEventURLMinimapButton.xml supplies RingBorder;
+  Mainline/Minimap.xml supplies UI-Minimap-ZoomButton-Highlight.
+  Blizzard_AchievementUI/Mainline/Blizzard_AchievementUI.lua uses
+  Interface/AchievementFrame/UI-Achievement-TinyShield.
+- Blizzard_Minimap/Shared/ExternalEventURLMinimapButton.lua uses GameTooltip
+  SetOwner/SetText/Show; tooltip Hide uses the existing frame API.
+  PLAYER_LOGIN has the earlier SystemDocumentation.lua lifecycle evidence.
+
+Strict initialization tests cover delayed minimap creation, own-addon isolation,
+launcher idempotence, tooltip callbacks and shared dashboard identity with the
+slash command. Checks/package pass; actual placement, rendering and alternative
+minimap UI compatibility still need in-game observation. No game client was run.

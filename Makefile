@@ -2,9 +2,9 @@
 bootstrap:
 	python3 scripts/bootstrap.py
 format:
-	.tools/stylua/stylua Core.lua Settings.lua Profile.lua Policy.lua Session.lua Protocol.lua Family.lua Transport.lua WoWTransport.lua Dashboard.lua tests scripts/probes types/addon.lua
+	.tools/stylua/stylua Core.lua Minimap.lua Settings.lua Profile.lua Policy.lua Session.lua Requests.lua History.lua HistoryCapture.lua Protocol.lua Family.lua Pairing.lua Transport.lua WoWTransport.lua Activity.lua PairingPanel.lua Dashboard.lua Chat.lua WoWChat.lua tests scripts/probes types/addon.lua
 format-check:
-	.tools/stylua/stylua --check Core.lua Settings.lua Profile.lua Policy.lua Session.lua Protocol.lua Family.lua Transport.lua WoWTransport.lua Dashboard.lua tests scripts/probes types/addon.lua
+	.tools/stylua/stylua --check Core.lua Minimap.lua Settings.lua Profile.lua Policy.lua Session.lua Requests.lua History.lua HistoryCapture.lua Protocol.lua Family.lua Pairing.lua Transport.lua WoWTransport.lua Activity.lua PairingPanel.lua Dashboard.lua Chat.lua WoWChat.lua tests scripts/probes types/addon.lua
 lint:
 	python3 scripts/lint.py
 manifest:
@@ -14,6 +14,10 @@ test:
 	.tools/lua/src/lua tests/phase2.lua
 	.tools/lua/src/lua tests/phase3.lua
 	.tools/lua/src/lua tests/phase4.lua
+	.tools/lua/src/lua tests/phase5.lua
+	.tools/lua/src/lua tests/phase6.lua
+	.tools/lua/src/lua tests/phase7.lua
+	.tools/lua/src/lua tests/pairing.lua
 	.tools/lua/src/lua tests/phase1_probe.lua
 	python3 tests/phase1_tooling.py
 	python3 tests/phase2_tooling.py

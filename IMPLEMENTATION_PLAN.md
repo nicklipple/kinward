@@ -2,8 +2,13 @@
 
 Status: Phases 2–3 shared logic and Phase 4 transport/dashboard implementation are available.
 Phase 4 live activation and two-account acceptance remain gated by P1-ID/P1-ROUTE.
-Phase 1 live-client acceptance remains pending; runtime chat enforcement is not
-yet connected.
+Phase 5 candidate chat adapters and shared fixture scenarios are implemented;
+live enforcement activation/acceptance remain gated by Phase 1 and Phase 4.
+Phase 6 shared requests, approvals and Requests UI are implemented with isolated
+simulator coverage; live acceptance remains pending.
+Phase 7 shared monitoring, bounded catchup and the guardian Activity viewer are
+implemented; live capture/delivery acceptance remains pending.
+Phase 1 live-client acceptance remains pending; runtime chat enforcement is inactive.
 [REQUIREMENTS.md](REQUIREMENTS.md) defines the product behavior. Implement the
 phases in order; each numbered task should fit a focused, reviewable change.
 Do not start by building the entire settings interface or transport framework.
@@ -121,9 +126,9 @@ Purpose: establish who can control or monitor each child.
   relationship/generation IDs, bounded payloads and strict decoding. Validate
   transport-reported identity rather than trusting sender fields in payloads.
   Define acknowledgements, duplicate handling and unsupported-version behavior.
-- [x] **3.2 First guardian pairing.** Implement short-lived single-use codes,
-  attempt limits, friendship verification and explicit confirmation tied to the
-  intended peer. Pairing completion installs closed defaults atomically. Do not
+- [x] **3.2 First guardian pairing.** Use child-initiated name-based requests,
+  short-lived single-use internal tokens, verified friendship and explicit
+  guardian acceptance tied to the intended peer. Pairing completion installs closed defaults atomically. Do not
   grant history access or policy authority to someone who merely knows a code.
 - [x] **3.3 Additional guardians and children.** Maintain independent child
   profiles on the guardian side. Require an existing guardian's approval for
@@ -207,7 +212,7 @@ verified surface rather than claiming all chat at once.
 - [ ] **5.2 Outgoing adapter.** Apply the same policy before a supported send path
   executes. Explain blocked sends to the child without exposing blocked incoming
   content. Distinguish a blocked attempt, an attempted send and confirmed output.
-- [ ] **5.3 Whisper identity.** Support character-only approval first, then
+- [x] **5.3 Whisper identity.** Support character-only approval first, then
   verified Battle.net-friend approval. Never allow a stranger solely because of
   party membership. Missing or secret identity must not become an accidental
   allow. Preserve the necessary guardian communication path.
@@ -223,22 +228,35 @@ Acceptance: a two-account checklist confirms blocked text is hidden and blocked
 outbound messages are not received on supported paths. Cover reload, logout,
 policy revocation and parent disconnect. Document any uncovered route.
 
+Implemented: `Chat.lua` and `WoWChat.lua` provide body-free policy decisions,
+bounded line-ID deduplication, pre-call ordinary whisper/party interception,
+current verified-friend candidate resolution, generic blocked-send notices and a
+candidate reload/login lifecycle. Strict tests cover those boundaries and a
+paired network-to-chat workflow; staged network commands exercise shared logic.
+See [Phase 5 contracts and checklists](docs/PHASE5_CHAT.md). Task 5.3 is implemented
+against injected/current engine mapping inputs; actual Battle.net identity still
+requires P1-ID acceptance. Tasks 5.1, 5.2 and 5.4 remain unchecked because no
+verified live boundary/bootstrap exists. Core does not activate the candidate.
+Incoming secret-argument callback bypass and cached/secure outgoing routes remain
+explicit gaps. **The usable live slice and two-account acceptance are unverified.**
+No actual client test was performed; no Phase 1 or Phase 4 gate is closed.
+
 ## Phase 6 — Child requests and temporary approvals
 
-- [ ] **6.1 Request model.** Add channel, whisper and temporary-exception requests,
+- [x] **6.1 Request model.** Add channel, whisper and temporary-exception requests,
   optional reasons, stable request IDs and pending/approved/denied/cancelled
   state. Queue offline requests with size limits and expiry/freshness rules.
-- [ ] **6.2 Blocked-whisper prompt.** Show the sender's character name, hide their
+- [x] **6.2 Blocked-whisper prompt.** Show the sender's character name, hide their
   message body, and offer a request to read/send whispers. Respect the guardian
   prompt setting; suppress duplicates and limit notification floods.
-- [ ] **6.3 Guardian approval UI.** Show the exact scope, identity and reason.
+- [x] **6.3 Guardian approval UI.** Show the exact scope, identity and reason.
   Offer indefinite, until-logout and explicit durations such as 15m/45m. Bind an
   approval to its request/target; do not treat it as permission for other channels.
-- [ ] **6.4 Apply and acknowledge.** Route grants through the existing policy
+- [x] **6.4 Apply and acknowledge.** Route grants through the existing policy
   protocol. A request is effective only when the child applies it. Handle two
   guardians answering, withdrawn/expired requests and revocation racing approval.
   Define duration start and command delivery deadline explicitly in the UI.
-- [ ] **6.5 Do not replay hidden history by default.** Approval affects subsequent
+- [x] **6.5 Do not replay hidden history by default.** Approval affects subsequent
   chat. Replaying previously blocked content requires a separate product decision.
 
 Deliverable: child request to guardian decision to effective expiring permission,
@@ -248,20 +266,34 @@ Acceptance: simulator and unit tests cover the full state transitions, duplicate
 approvals, expired requests, conflicting decisions and expiry across reload and
 logout. Real-client tests confirm the prompt never reveals the message body.
 
+Implemented: `Requests.lua` supplies bounded durable child requests, freshness,
+cancellation, sender-only prompts and approval validation. Family/Transport add
+authorized inbox polling and decisions through existing policy/replay logic;
+the Requests tab supports browsing, scoped creation, denial and indefinite,
+session or 15m/45m approvals. Connection retains diagnostics. Duration starts at
+child application; stale request/policy/session/deadline checks prevent delayed
+approvals from reopening revoked access. Hidden bodies never enter requests or
+prompts, and no history is replayed. See [contracts and demo](docs/PHASE6_REQUESTS.md).
+
+The checked tasks denote shared code and candidate adapter/UI implementation.
+Strict simulator, widget and boundary tests pass; **real-client privacy and
+online/reconnect acceptance remain unverified**, as do the earlier live gates.
+No real chat is intercepted or request delivered between accounts by Core.
+
 ## Phase 7 — Monitoring and bounded history
 
-- [ ] **7.1 Capture once.** Record accessible incoming/outgoing chat, blocked
+- [x] **7.1 Capture once.** Record accessible incoming/outgoing chat, blocked
   incoming messages and intercepted blocked-send attempts once per message.
   Include direction, channel, identity, time and disposition. Never serialize,
   compare or persist inaccessible secret values; record a gap instead.
-- [ ] **7.2 Bounded storage.** Add configurable retention/count limits and bounded
+- [x] **7.2 Bounded storage.** Add configurable retention/count limits and bounded
   delivery queues. Seven days/10,000 records are proposed starting defaults to
   confirm before release. Report truncation, expiry and unavailable intervals.
-- [ ] **7.3 Authorized history delivery.** Send only to current approved guardians,
+- [x] **7.3 Authorized history delivery.** Send only to current approved guardians,
   with batch limits, sequence/cursor tracking, deduplication and resumable catchup.
   Prioritize control messages and requests ahead of history backlog. Recheck
   authorization when sending, not just when originally queuing a record.
-- [ ] **7.4 Guardian viewer.** Add per-child live/history views, channel and
+- [x] **7.4 Guardian viewer.** Add per-child live/history views, channel and
   disposition filters, catchup progress and monitoring-gap indicators. Keep
   blocked text out of child-visible widgets, debug output and simulator/live
   crossover. Clearly indicate to the child that monitoring is active.
@@ -273,6 +305,22 @@ Acceptance: tests verify retention, reconnect catchup, duplicate batches,
 revocation during transfer, isolation between children and guardians, and that
 history traffic cannot starve pairing or policy changes. Verify actual capture
 coverage and restricted-state gaps in-client.
+
+Implemented: `History.lua`, `HistoryCapture.lua` and `Activity.lua` provide bounded
+validated source/cache storage, accessible whisper/party candidate capture,
+attempt/output distinctions, fixed gaps, authenticated cursor batches and a
+per-child guardian browser. Activity filters channel, conversation, time,
+direction and disposition; Connection remains body-free diagnostics. Child views
+show monitoring status without exposing retained bodies. Seven-day/10,000-row
+configurable defaults remain development proposals pending release confirmation.
+
+History work has bounded jobs and lower scheduling priority than control/request
+traffic; authorization is rechecked before queued fragments. Tests cover retention,
+reconnect/duplicates, revocation, isolation, privacy and queue/control priority.
+See [contracts and walkthrough](docs/PHASE7_HISTORY.md). Checkboxes denote shared
+code/candidate implementation. **Real-client capture coverage, restricted-state
+behavior, privacy and two-account delivery remain unverified.** Core still leaves
+the live adapters inactive; this closes none of the earlier client gates.
 
 ## Phase 8 — Broaden coverage and prepare the first release
 
@@ -323,3 +371,15 @@ and two-account acceptance before claiming a real paired-control milestone.
 Record eventual client results in
 [docs/PHASE1_RESULTS.md](docs/PHASE1_RESULTS.md); mocks do not close these gates.
 No new framework or third-party runtime library is assumed.
+
+
+## Pairing workflow update — 2026-11-04
+
+The primary Family UI now uses child name lookup/request and guardian accept/decline
+cards, with a pending-request notification button. The candidate live adapter
+focuses the verified live Family dashboard for a new request. No code or operation
+ID input is required. Additional guardians still need an existing guardian's
+approval through a fetched candidate button. Closed defaults, peer/token binding,
+expiry/cancellation/replay and generation checks are preserved. See
+[the current pairing walkthrough](docs/PAIRING.md); earlier short-code walkthroughs
+remain historical diagnostic fixtures. Live identity/routing acceptance is unchanged.

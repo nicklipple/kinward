@@ -18,7 +18,7 @@ manifest = load('guardian_manifest', 'scripts/manifest.py')
 with tempfile.TemporaryDirectory() as directory:
     root = Path(directory)
     toc = (ROOT / 'Guardian.toc').read_bytes()
-    for name in ('Guardian.toc', 'Core.lua', 'Settings.lua', 'Policy.lua', 'Profile.lua', 'Session.lua', 'Protocol.lua', 'Family.lua', 'Transport.lua', 'WoWTransport.lua', 'Dashboard.lua'):
+    for name in ('Guardian.toc', 'Core.lua', 'Minimap.lua', 'Settings.lua', 'Policy.lua', 'Profile.lua', 'Session.lua', 'Requests.lua', 'History.lua', 'HistoryCapture.lua', 'Protocol.lua', 'Family.lua', 'Pairing.lua', 'Transport.lua', 'WoWTransport.lua', 'Activity.lua', 'PairingPanel.lua', 'Dashboard.lua', 'Chat.lua', 'WoWChat.lua'):
         (root / name).write_bytes((ROOT / name).read_bytes())
     tool.TOC, tool.STAGED = root / 'Guardian.toc', root / 'Phase2Simulator.lua'
     manifest.ROOT = manifest.ADDON = root

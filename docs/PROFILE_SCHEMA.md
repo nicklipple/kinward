@@ -65,3 +65,48 @@ not authority. Malformed caches enter recovery consistently with other malformed
 profile data. Missing additive fields are accepted. Transport queues, packet IDs,
 reassembly, contacts and partial snapshots are never persisted; sender sequences
 and accepted child policy/replay state survive reload.
+
+
+Phase 6 adds optional schema-1 fields `requests`, `requestPrompts` (default true)
+and `requestSequence` (default zero). Local request maps contain at most 32 typed
+records with ID/generation, scope/direction/target, child-entered reason (160 bytes),
+24-hour freshness deadline, state, base policy revision and creation session.
+A present record requires a valid retained counter; rewound/malformed counters
+or records enter recovery. Counters survive relationship reset while pending and
+terminal request records clear. Old valid profiles with none of these fields
+migrate additively without losing policy or membership.
+
+Each guardian child record may cache at most 32 similarly validated requests and
+the last fetched prompt setting. These are display data, never control authority.
+Incomplete inbox scans, prompt caches and outgoing approval work are transient;
+the child persists accepted request decisions plus existing policy/replay state.
+See [request contracts](PHASE6_REQUESTS.md) for expiry, bounds and race handling.
+
+
+Phase 7 adds optional `history` to the source profile and each guardian child
+record. It contains generation, validated bounded records, high sequence,
+count-pruned/expired totals, retention (60 seconds–30 days), maximum records
+(1–10,000) and last heartbeat. Defaults are seven days/10,000 rows, pending release
+confirmation. Guardian caches additionally retain cursor, last fetch and separate
+cache-removal count. Source sequences must agree with retained rows/loss totals;
+malformed arrays, metadata, body types or generation fail closed into recovery.
+
+Records contain sequence, time/end, direction, channel, accessible character/account,
+disposition, at-most-256-byte text and truncation flag. Hex is a wire encoding only;
+stored text can contain controls/newlines. Normalization preserves valid existing
+profiles without these optional fields. Own ADDON_LOADED and runtime maintenance
+prune offline-expired data. Source history survives approved membership rotations
+under the new authorization but clears on stop/reset; guardian views reset on
+rotation. Correlation buffers, capture dedup, watchers and history jobs are transient.
+See [history contracts](PHASE7_HISTORY.md) for privacy, bounds and coverage limits.
+
+
+Name-based pairing adds optional `pairingReceipt` on the child: current approved
+peer, internal token, exact acceptance operation/sequence, original request
+and current generation, and expiry. It does not itself authorize a guardian;
+validation also requires current paired membership. It allows an identical lost
+acceptance response to be regenerated after reload without another mutation.
+Family reset/rotation clears it; the newly approved guardian's receipt can be
+stored after atomic completion. Malformed receipts enter recovery. Child proposals,
+guardian request inboxes and fetched additional-guardian candidates are transient.
+See [the pairing workflow](PAIRING.md) for bounds and consent.

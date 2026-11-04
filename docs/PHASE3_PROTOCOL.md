@@ -1,5 +1,9 @@
 # Phase 3 family protocol and simulator
 
+Current user-facing pairing is [name request and one-click acceptance](PAIRING.md).
+Older code/operation-entry procedures below remain diagnostic regression fixtures;
+the normal Family UI no longer requires them.
+
 `Protocol.lua` and `Family.lua` are pure production modules. The staged simulator
 runs these same modules with synthetic transport identities, friendship maps,
 clocks, codes and generation tokens. No live transport, randomness source,

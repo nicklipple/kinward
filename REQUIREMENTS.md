@@ -23,7 +23,10 @@ Mail, group-finder text and other non-chat player-written text are out of scope.
 - Guardians and children must be Battle.net friends. Verify usable identity and
   alt discovery in-client; friendship alone is not authorization to control a
   child or read their history.
-- Pair with a short code and explicit confirmation. Before pairing completes,
+- The child enters an intended guardian's name, reviews the resolved verified
+  account and requests guardianship. The guardian accepts from a notification
+  or button; users do not create or type pairing codes or operation IDs.
+  Before pairing completes,
   Guardian imposes no restrictions. After pairing, permissions default closed
   except the necessary guardian communication and control path.
 - One guardian can supervise multiple children. A child can have multiple

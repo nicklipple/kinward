@@ -202,6 +202,7 @@ function ns.NewNetworkSimulator()
         sim = sim,
         transports = {},
         dashboards = {},
+        chats = {},
         routes = { parent = 1, parent2 = 2, child = 3, child2 = 4 },
     }
     for id, endpoint in pairs(sim.endpoints) do
@@ -213,6 +214,11 @@ function ns.NewNetworkSimulator()
             end,
             friends = function()
                 return source.friends
+            end,
+            findPeer = function(name)
+                local normalized = name:lower():gsub("%-testrealm$", "")
+                return source.friends[normalized] and sim.endpoints[normalized] and normalized
+                    or nil
             end,
             resolve = function(peer)
                 local target = sim.endpoints[peer]
@@ -250,8 +256,13 @@ function ns.NewNetworkSimulator()
                 return "sent"
             end,
         })
+        network.chats[id] = ns.NewChat(endpoint.profile, function()
+            return ns.SimContext(sim, sender)
+        end)
+        network.chats[id].monitoring = true
         network.transports[id] = transport
-        network.dashboards[id] = ns.NewDashboard(endpoint.profile, transport)
+        network.dashboards[id] =
+            ns.NewDashboard(endpoint.profile, transport, nil, network.chats[id])
     end
     return network
 end
@@ -263,7 +274,13 @@ function ns.NetworkAdvance(network, seconds)
     for _ = 1, math.min(1500, math.floor(seconds * 5)) do
         sim.now = sim.now + 0.2
         for _, transport in pairs(network.transports) do
+            ns.TickGuardianship(transport)
+            ns.PollHistory(transport)
+            ns.PollRequests(transport)
             ns.TransportTick(transport)
+        end
+        for _, chat in pairs(network.chats) do
+            ns.HistoryHeartbeat(chat, false)
         end
         for i = #sim.queue, 1, -1 do
             local packet = sim.queue[i]
@@ -279,6 +296,42 @@ function ns.NetworkAdvance(network, seconds)
             end
         end
     end
+end
+
+---@param network GuardianNetworkSimulator
+---@param child string
+function ns.SimHistorySamples(network, child)
+    local chat = network.chats[child]
+    if not chat or chat.profile.supervision ~= "paired" then
+        return
+    end
+    local samples = {
+        { "party", "Friend-TestRealm", "Ready for our next adventure?" },
+        { "whisper", "Stranger-TestRealm", "Synthetic blocked whisper: guardian history only." },
+        { "whisper", "Friend-TestRealm", "Can we play together for fifteen minutes?" },
+    }
+    local now = network.sim.now
+    for _, row in ipairs(samples) do
+        local identity = { character = ns.CharacterKey(row[2]) }
+        local allowed = ns.ChatDecision(chat, row[1], "read", identity)
+        ns.AppendHistory(
+            chat.profile,
+            now,
+            "read",
+            row[1],
+            identity,
+            allowed and "allowed" or "blocked",
+            row[3]
+        )
+    end
+    ns.CaptureSend(
+        chat,
+        "party",
+        nil,
+        "Synthetic outgoing party message.",
+        ns.Evaluate(chat.profile, "party", "send", nil, ns.SimContext(network.sim, child))
+    )
+    ns.HistoryGap(chat, "Synthetic monitoring gap for browsing.", now - 120)
 end
 
 -- This file is staged explicitly and never included in distribution manifests.
@@ -336,6 +389,30 @@ SlashCmdList.GUARDIANSIM = function(message)
         end
         local d = network.dashboards[words[2]]
         print("Guardian SIM network: " .. ns.DashboardCommand(d, table.concat(input, " ")))
+        return
+    elseif command == "network-chat" and network and network.chats[words[2]] then
+        if words[3] ~= "read" and words[3] ~= "send" then
+            print("Guardian SIM chat: use read or send.")
+            return
+        end
+        local allowed, reason = ns.ChatDecision(network.chats[words[2]], words[4] or "", words[3], {
+            character = words[5],
+            account = words[6],
+        }, tonumber(words[7]))
+        print("Guardian SIM chat: " .. (allowed and "allowed" or "blocked") .. "; " .. reason)
+        return
+    elseif
+        (command == "network-login" or command == "network-reload")
+        and network
+        and network.chats[words[2]]
+    then
+        local e = network.sim.endpoints[words[2]]
+        if command == "network-login" then
+            e.login = e.login + 1
+        end
+        ns.BeginSession(e.profile, words[2] .. ":" .. e.login)
+        network.chats[words[2]].seen, network.chats[words[2]].order = {}, {}
+        print("Guardian SIM chat: simulated session=" .. e.profile.sessionId)
         return
     elseif command == "network-status" and network and network.dashboards[words[2]] then
         print(ns.DashboardText(network.dashboards[words[2]]))

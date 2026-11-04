@@ -92,3 +92,47 @@ mapping, stable/local account identity, token generation, alt changes, lockdown
 and actual delivery remain unverified. See PHASE4_TRANSPORT.md for activation
 prerequisites and the separate one-client/two-account checklists. This entry
 closes none of P1-ID, P1-ROUTE or Phase 4 live acceptance.
+
+
+## Phase 5 implementation — 2026-11-03
+
+Candidate ordinary-whisper/party adapters, fresh friendship mapping, lifecycle
+handling and shared network-to-chat scenarios are implemented and exercised
+with strict Lua 5.1 mocks. Core keeps live adapters inactive. No client was run,
+no outbound receiver evidence was collected, and two accounts remain unavailable.
+All gates above remain open. Source limitations include inaccessible incoming
+callbacks being skipped and cached/secure outgoing routes bypassing a wrapper.
+See PHASE5_CHAT.md for exact scope and separate fixture/client checklists.
+
+
+## Phase 6 implementation — 2026-11-03
+
+Shared durable requests, temporary approval validation, scoped policy mutation,
+authorized paged polling, sender-only prompts and Requests UI are implemented.
+Strict Lua 5.1 network/widget/boundary scenarios cover those branches, including
+secret-body sentinels. No client was run and no two-account request, actual prompt
+privacy, rendering, restricted-state or delivery result was collected. The
+candidate adapters remain inactive in Core; all earlier live gates remain open.
+See PHASE6_REQUESTS.md for fixture walkthrough and pending client acceptance.
+
+
+## Phase 7 implementation — 2026-11-04
+
+Shared history capture/storage, bounded authenticated catchup and a guardian-only
+Activity browser are implemented. Strict Lua 5.1 network/widget/candidate-boundary
+scenarios include throwing secret sentinels, real protocol batches, retention,
+queued revocation and control priority. No actual client or two-account test was
+performed. Core keeps live capture/transport inactive. Filter callback bypass,
+restricted intervals, party self identity and engine/secure/cached send paths
+remain explicit coverage gates. All earlier live gates remain open; see
+PHASE7_HISTORY.md for scope, demo and pending acceptance.
+
+
+## Streamlined pairing implementation — 2026-11-04
+
+Child name requests, guardian accept/decline cards, additional-guardian approval
+buttons, current-friend alias resolution and the guarded live popup branch are
+covered by shared protocol/widget/adapter mocks. No actual client or two-account
+pairing test was performed. Closed defaults and current-peer authorization remain
+mandatory. The candidate transport is still inactive in Core; existing live
+identity/routing/bootstrap gates remain open. See PAIRING.md for the new demo.

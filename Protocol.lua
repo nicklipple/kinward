@@ -10,7 +10,7 @@ end
 ---@param fields string[]
 ---@return string?
 function ns.EncodeMessage(fields)
-    if #fields < 5 or #fields > 16 then
+    if #fields < 5 or #fields > (fields[2] == "history-batch" and 46 or 16) then
         return nil
     end
     local parts = {}
@@ -32,7 +32,7 @@ function ns.DecodeMessage(wire)
     end
     local fields, cursor = {}, 1
     while cursor <= #wire do
-        if #fields == 16 then
+        if #fields == 46 then
             return nil, "malformed"
         end
         local first, last, digits = wire:find("^(%d+):", cursor)
@@ -49,7 +49,7 @@ function ns.DecodeMessage(wire)
         end
         fields[#fields + 1], cursor = value, last + size + 1
     end
-    if #fields < 5 then
+    if #fields < 5 or (#fields > 16 and fields[2] ~= "history-batch") then
         return nil, "malformed"
     end
     if fields[1] ~= "1" then

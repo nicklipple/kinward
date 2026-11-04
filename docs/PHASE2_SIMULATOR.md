@@ -1,5 +1,9 @@
 # Single-client policy simulator
 
+Current user-facing pairing is [name request and one-click acceptance](PAIRING.md).
+Older code/operation-entry procedures below remain diagnostic regression fixtures;
+the normal Family UI no longer requires them.
+
 Phase 2 provides synthetic `parent`, `parent2`, `child`, and `child2` endpoints.
 Each owns independent production profiles; children begin paired to both fixture
 guardians with closed defaults. These fixtures bypass pairing ceremonies. The transport now routes grants through the production Phase 3 decoder and
@@ -103,3 +107,25 @@ for interactive testing. The Family and Permissions tabs use production pairing,
 confirmation and policy actions; outage buttons test loss and expiry. See the
 [visual walkthrough](PHASE4_TRANSPORT.md#visual-one-session-demo). This remains
 synthetic and cannot verify actual chat enforcement or remote routing.
+
+
+Phase 5 adds `network-chat ENDPOINT read|send CHANNEL CHARACTER ACCOUNT LINE_ID`,
+`network-reload ENDPOINT` and `network-login ENDPOINT`. These use independent
+production Chat instances for network profiles, with fixture time/identity only.
+See [the chat walkthrough](PHASE5_CHAT.md) for paired grant/revoke scenarios.
+They never send or filter live chat and cannot verify actual session flags.
+
+
+Phase 6 adds the visual Requests tab to each network endpoint and command actions
+`request CHANNEL read|send TARGET|- REASON`, `requests CHILD`,
+`decide CHILD REQUEST_ID approve|deny MODE|- SECONDS|-` and
+`cancel-request REQUEST_ID`. Sender-only prompts use the endpoint's production
+Chat instance; no message body enters the model. See [requests and temporary
+approvals](PHASE6_REQUESTS.md) for offline, expiry, cancellation and approval demos.
+
+
+Phase 7 adds a guardian-only Activity tab with per-child filtering and cursor
+catchup. Add sample chat injects synthetic accessible messages into the selected
+fixture child's production history model, never live chat or GuardianDB.
+Connection retains diagnostics. [The history walkthrough](PHASE7_HISTORY.md)
+covers privacy, outages, retention and revocation during transfer.

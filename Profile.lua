@@ -197,6 +197,12 @@ local function validFamilyState(settings)
             or not identifier(child.generation)
             or not identifier(child.result)
             or not validChildView(child)
+            or (child.history ~= nil and not ns.ValidHistory(child.history, child.generation))
+            or not ns.ValidRequestState({
+                requests = child.requests,
+                generation = child.generation,
+                requestPrompts = child.requestPrompts,
+            })
             or (
                 child.replySequence ~= nil
                 and (
@@ -232,6 +238,11 @@ function ns.NormalizeSettings(saved)
         and settings.familyReplay == nil
         and settings.familySequence == nil
         and settings.childProfiles == nil
+        and settings.requests == nil
+        and settings.requestPrompts == nil
+        and settings.requestSequence == nil
+        and settings.history == nil
+        and settings.pairingReceipt == nil
     local fresh = saved == nil or legacy
     if type(settings.enabled) ~= "boolean" then
         settings.enabled = true
@@ -258,6 +269,10 @@ function ns.NormalizeSettings(saved)
             and type(settings.queues.requests) == "table"
             and type(settings.queues.delivery) == "table"
             and validFamilyState(settings)
+            and ns.ValidPairingReceipt(settings)
+            and ns.ValidRequestState(settings)
+            and (settings.history == nil or ns.ValidHistory(settings.history, settings.generation))
+            and (not next(settings.requests or {}) or settings.requestSequence ~= nil)
         if valid and settings.supervision == "paired" then
             valid = settings.role == "child" and next(settings.guardians) ~= nil
         elseif valid then
@@ -286,6 +301,11 @@ function ns.NormalizeSettings(saved)
             }
         end
     end
+    settings.requests = settings.requests or {}
+    if settings.requestPrompts == nil then
+        settings.requestPrompts = true
+    end
+    settings.requestSequence = settings.requestSequence or 0
     settings.familyReplay = settings.familyReplay or {}
     settings.familySequence = settings.familySequence or {}
     settings.childProfiles = settings.childProfiles or {}

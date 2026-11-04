@@ -4,6 +4,16 @@ local addonName, ns = ...
 
 ns.initialized = false
 
+---The slash command and launcher always open the same local dashboard.
+function ns.OpenDashboard()
+    if not ns.initialized then
+        return
+    end
+    ns.dashboard = ns.dashboard
+        or ns.NewDashboard(ns.settings, nil, GetServerTime, ns.chat and ns.chat.chat)
+    ns.ShowDashboard(ns.dashboard)
+end
+
 SLASH_GUARDIAN1 = "/guardian"
 SlashCmdList.GUARDIAN = function(message)
     if ns.initialized and message and message ~= "" then
@@ -15,10 +25,11 @@ SlashCmdList.GUARDIAN = function(message)
             end
             return
         end
-        ns.dashboard = ns.dashboard or ns.NewDashboard(ns.settings, nil, GetServerTime)
         if message == "ui" then
-            ns.ShowDashboard(ns.dashboard)
+            ns.OpenDashboard()
         else
+            ns.dashboard = ns.dashboard
+                or ns.NewDashboard(ns.settings, nil, GetServerTime, ns.chat and ns.chat.chat)
             print(ns.DashboardCommand(ns.dashboard, message))
         end
         return
@@ -30,11 +41,20 @@ end
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("ADDON_LOADED")
 frame:SetScript("OnEvent", function(self, event, loadedAddon)
+    if event == "PLAYER_LOGIN" and ns.initialized then
+        ns.InstallMinimapButton()
+        self:UnregisterEvent("PLAYER_LOGIN")
+        return
+    end
     if event ~= "ADDON_LOADED" or loadedAddon ~= addonName then
         return
     end
     GuardianDB = ns.NormalizeSettings(GuardianDB)
+    ns.PruneProfileHistory(GuardianDB, GetServerTime())
     ns.settings = GuardianDB
     ns.initialized = true
+    if not ns.InstallMinimapButton() then
+        self:RegisterEvent("PLAYER_LOGIN")
+    end
     self:UnregisterEvent("ADDON_LOADED")
 end)

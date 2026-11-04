@@ -32,6 +32,10 @@ local function clearWork(endpoint)
     endpoint.outgoing = {}
     endpoint.profile.queues = { requests = {}, delivery = {} }
     endpoint.profile.familyReplay = {}
+    endpoint.proposal, endpoint.guardianInbox = nil, {}
+    endpoint.profile.pairingReceipt = nil
+    endpoint.profile.requests = {}
+    ns.HistoryRelationshipChanged(endpoint.profile)
 end
 
 local function rotate(endpoint)
@@ -160,7 +164,32 @@ end
 
 local function apply(endpoint, fields, now, friends)
     local p, kind = endpoint.profile, fields[2]
-    if kind == "policy" and (#fields == 11 or #fields == 12) then
+    if kind == "history-config" and #fields == 8 then
+        local deadline = tonumber(fields[8])
+        if not deadline or deadline ~= deadline or deadline > now + 300 or now >= deadline then
+            return "delivery-expired"
+        end
+        local retention, count = tonumber(fields[6]), tonumber(fields[7])
+        if not retention or not count then
+            return "invalid-history-limits"
+        end
+        return ns.ConfigureHistory(p, retention, count, now) and "applied"
+            or "invalid-history-limits"
+    elseif kind == "request-decision" then
+        return ns.ApplyRequestDecision(p, fields, now, function(policyFields)
+            return apply(endpoint, policyFields, now, friends)
+        end)
+    elseif kind == "request-prompts" and #fields == 7 then
+        local deadline = tonumber(fields[7])
+        if not deadline or deadline ~= deadline or deadline > now + 300 or now >= deadline then
+            return "delivery-expired"
+        end
+        if fields[6] ~= "true" and fields[6] ~= "false" then
+            return "invalid-prompts"
+        end
+        p.requestPrompts = fields[6] == "true"
+        return "applied"
+    elseif kind == "policy" and (#fields == 11 or #fields == 12) then
         if (p.policyRevision or 0) >= 2147483647 then
             return "revision-limit"
         end
@@ -232,9 +261,13 @@ local function apply(endpoint, fields, now, friends)
         if not generation then
             return "generation-unavailable"
         end
+        local proposal = endpoint.proposal
         p.guardians[pending.peer] = true
         p.generation = generation
         clearWork(endpoint)
+        if proposal and proposal.peer == pending.peer and proposal.token == pending.operation then
+            ns.StorePairingReceipt(endpoint, proposal)
+        end
         return "guardian-added"
     elseif kind == "remove" and #fields == 7 then
         local target = fields[6]
@@ -281,6 +314,9 @@ function ns.FamilyReceive(endpoint, peer, wire, now, friends)
         return false, "invalid-operation"
     end
     local p, kind = endpoint.profile, fields[2]
+    if kind == "guardian-request" or kind == "guardian-accept" or kind == "guardian-decline" then
+        return ns.ReceiveGuardianship(endpoint, peer, fields, now, friends)
+    end
     if kind == "pair" then
         if
             #fields ~= 6
@@ -353,6 +389,33 @@ function ns.FamilyReceive(endpoint, peer, wire, now, friends)
     end
     if not ns.FamilyCanDeliver(endpoint, peer, fields[4]) then
         return false, "unauthorized"
+    end
+    if kind == "pairing-pending" and #fields == 5 then
+        local proposal = endpoint.proposal
+        local pending = proposal
+            and proposal.state == "awaiting-approval"
+            and now < proposal.expires
+            and friends[proposal.peer]
+        return true,
+            "pairing-candidate",
+            ns.EncodeMessage({
+                "1",
+                "pairing-candidate",
+                fields[3],
+                p.generation,
+                fields[5],
+                pending and proposal and proposal.peer or "",
+                pending and proposal and proposal.token or "",
+                pending and proposal and tostring(proposal.expires) or "0",
+            })
+    end
+    if kind == "history" and #fields == 6 then
+        local batch = ns.HistoryBatch(p, fields, now)
+        return batch ~= nil, batch and "history-batch" or "invalid-history-cursor", batch
+    end
+    if kind == "request-list" then
+        local page = ns.RequestPage(p, fields, now)
+        return page ~= nil, page and "requests" or "invalid-cursor", page
     end
     if kind == "snapshot" and #fields == 7 then
         local cursor, revision = tonumber(fields[6]), tostring(p.policyRevision or 0)
@@ -466,7 +529,8 @@ function ns.FamilyReceive(endpoint, peer, wire, now, friends)
         or result == "history-authorized"
         or result == "guardian-added"
         or result == "guardian-removed"
-        or result == "stopped",
+        or result == "stopped"
+        or result == "request-denied",
         result,
         ack
 end
@@ -478,7 +542,12 @@ end
 ---@param arguments string[]
 ---@return string?
 function ns.FamilyRequest(endpoint, peer, generation, kind, arguments)
-    if endpoint.profile.role ~= "guardian" or not ns.ValidIdentifier(peer) then
+    if
+        (
+            endpoint.profile.role ~= "guardian"
+            and not (endpoint.profile.role == "child" and kind == "guardian-request")
+        ) or not ns.ValidIdentifier(peer)
+    then
         return nil
     end
     if kind == "pair" then
@@ -537,7 +606,11 @@ function ns.FamilyReply(endpoint, peer, wire)
         endpoint.outgoing[key] = nil
         return false, "stale-reply"
     end
-    if fields[2] == "state" and pending.kind == "sync" and fields[6] == "paired" then
+    if
+        fields[2] == "state"
+        and (pending.kind == "sync" or pending.kind == "guardian-accept")
+        and fields[6] == "paired"
+    then
         endpoint.profile.children[peer] = true
         local record = child and child.generation == fields[4] and child or {}
         record.generation, record.result, record.replySequence = fields[4], "paired", sequence

@@ -27,11 +27,18 @@ for _, file in ipairs({
     "Policy.lua",
     "Profile.lua",
     "Session.lua",
+    "Requests.lua",
+    "History.lua",
+    "HistoryCapture.lua",
     "Protocol.lua",
     "Family.lua",
+    "Pairing.lua",
     "Transport.lua",
     "WoWTransport.lua",
+    "Activity.lua",
+    "PairingPanel.lua",
     "Dashboard.lua",
+    "Chat.lua",
     "scripts/probes/Phase2Simulator.lua",
 }) do
     setfenv(assert(loadfile(file)), env)("Guardian", ns)
@@ -627,10 +634,9 @@ test("visual role buttons save role and gated live controls cannot send", functi
         ns.ShowDashboard(d)
         ui.click("Guardian role")
         assert(p.role == "guardian" and not ui.find("Guardian role").enabled)
-        assert(not ui.find("Request pairing").enabled)
-        ui.fill(18, 66, "child")
-        ui.fill(336, 66, "12345678")
-        assert(not ui.find("Request pairing").enabled)
+        ui.click("Child role")
+        ui.fill(18, 26, "parent")
+        assert(not ui.find("Request guardianship").enabled)
         local count = #ui.frames
         d.window:Hide()
         ns.ShowDashboard(d)
@@ -720,20 +726,13 @@ test("single-session visual demo pairs and edits through buttons without live st
         commands.GUARDIANSIM("network-reset")
         ns.ShowNetworkDemo()
         ui.click("child")
-        ui.fill(18, 66, "parent")
-        ui.fill(336, 66, "12345678")
-        ui.click("Create invitation")
-        ui.click("parent")
-        ui.fill(18, 66, "child")
-        ui.fill(336, 66, "12345678")
-        ui.click("Request pairing")
+        ui.fill(18, 26, "parent")
+        ui.click("Request guardianship")
         ui.tick(2)
-        ui.click("child")
-        ui.click("Confirm this guardian")
-        ui.click("Confirm action")
         ui.click("parent")
-        ui.click("Sync child")
-        ui.tick(4)
+        ui.click("Guardianship requests (1)")
+        ui.click("Accept child")
+        ui.tick(8)
         ui.click("Permissions")
         ui.click("Allow")
         ui.tick(5)

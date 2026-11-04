@@ -32,8 +32,15 @@ local function forget(t, item, state)
     t.family.outgoing[item.peer .. "/" .. item.operation] = nil
 end
 
+local function historyKind(kind)
+    return kind == "history" or kind == "history-batch"
+end
+
 local function enqueue(t, peer, wire, deadline, reply)
-    if #t.work >= 64 then
+    local fields = ns.DecodeMessage(wire)
+    local low = fields and historyKind(fields[2])
+    local capacity = low and 48 or 64
+    if #t.work >= capacity then
         for index, item in ipairs(t.work) do
             if
                 item.state == "applied"
@@ -47,8 +54,19 @@ local function enqueue(t, peer, wire, deadline, reply)
             end
         end
     end
-    local fields = ns.DecodeMessage(wire)
-    if #t.work >= 64 or not fields or deadline <= t.io.now() or deadline > t.io.now() + 300 then
+    local historyPending = 0
+    for _, item in ipairs(t.work) do
+        if historyKind(item.kind) and (item.state == "pending" or item.state == "delivered") then
+            historyPending = historyPending + 1
+        end
+    end
+    if
+        (low and historyPending >= 16)
+        or #t.work >= capacity
+        or not fields
+        or deadline <= t.io.now()
+        or deadline > t.io.now() + 300
+    then
         return nil
     end
     t.serial = t.serial + 1
@@ -93,21 +111,53 @@ function ns.TransportRequest(t, peer, kind, args, seconds)
         return nil, "invalid-deadline"
     end
     local child = t.family.profile.childProfiles[peer]
-    if kind ~= "pair" and kind ~= "sync" and not child then
+    if
+        kind ~= "pair"
+        and kind ~= "sync"
+        and kind ~= "guardian-request"
+        and kind ~= "guardian-accept"
+        and kind ~= "guardian-decline"
+        and not child
+    then
         return nil, "sync-required"
     end
     local arguments = {}
     for i, value in ipairs(args) do
         arguments[i] = value
     end
-    if kind == "policy" then
+    if kind == "history-config" then
+        if #arguments ~= 2 then
+            return nil, "invalid-history-limits"
+        end
+        arguments[3] = tostring(now + seconds)
+    elseif kind == "request-decision" then
+        if #arguments ~= 5 then
+            return nil, "invalid-decision"
+        end
+        arguments[6] = tostring(now + seconds)
+    elseif kind == "request-prompts" then
+        if #arguments ~= 1 then
+            return nil, "invalid-prompts"
+        end
+        arguments[2] = tostring(now + seconds)
+    elseif kind == "policy" then
         if #arguments ~= 6 then
             return nil, "invalid-policy"
         end
         arguments[7] = tostring(now + seconds)
     end
-    local wire =
-        ns.FamilyRequest(t.family, peer, child and child.generation or "initial", kind, arguments)
+    local generation = child and child.generation or "initial"
+    if kind == "guardian-request" then
+        generation = t.family.profile.generation
+    end
+    if kind == "guardian-accept" or kind == "guardian-decline" then
+        local request = t.family.guardianInbox and t.family.guardianInbox[peer]
+        if not request or request.token ~= args[1] then
+            return nil, "unknown-pairing-request"
+        end
+        generation = request.generation
+    end
+    local wire = ns.FamilyRequest(t.family, peer, generation, kind, arguments)
     if not wire then
         return nil, "queue-full"
     end
@@ -138,6 +188,9 @@ local function reply(t, peer, wire)
             and fields[2] ~= "state"
             and fields[2] ~= "setting"
             and fields[2] ~= "snapshot"
+            and fields[2] ~= "requests"
+            and fields[2] ~= "pairing-candidate"
+            and fields[2] ~= "history-batch"
         )
     then
         return false
@@ -151,11 +204,24 @@ local function reply(t, peer, wire)
             and (item.state == "pending" or item.state == "delivered")
             and t.io.now() < item.deadline
         then
-            if item.kind ~= "sync" and fields[4] ~= item.generation then
+            if
+                item.kind ~= "sync"
+                and item.kind ~= "guardian-accept"
+                and fields[4] ~= item.generation
+            then
                 return false
             end
             local accepted, result
-            if fields[2] == "snapshot" and item.kind == "snapshot" and #fields == 14 then
+            if fields[2] == "pairing-candidate" and item.kind == "pairing-pending" then
+                accepted = ns.AcceptGuardianCandidate(t, peer, fields, item)
+                result = "pairing-candidate"
+            elseif fields[2] == "history-batch" and item.kind == "history" then
+                accepted = ns.AcceptHistoryBatch(t, peer, fields, item)
+                result = "history-batch"
+            elseif fields[2] == "requests" and item.kind == "request-list" then
+                accepted = ns.AcceptRequestPage(t, peer, fields, item)
+                result = "requests"
+            elseif fields[2] == "snapshot" and item.kind == "snapshot" and #fields == 14 then
                 local child = t.family.profile.childProfiles[peer]
                 local requested = ns.DecodeMessage(item.wire)
                 local revision = tonumber(fields[6])
@@ -287,7 +353,10 @@ local function reply(t, peer, wire)
                     )
                 end
             end
-            if item.kind == "policy" and result == "applied" then
+            if
+                (item.kind == "policy" and result == "applied")
+                or (item.kind == "add" and result == "guardian-added")
+            then
                 local pendingSync = false
                 for _, work in ipairs(t.work) do
                     if
@@ -306,14 +375,35 @@ local function reply(t, peer, wire)
             item.state = (
                 result == "applied"
                 or result == "paired"
+                or result == "request-received"
+                or result == "declined"
+                or result == "guardian-approval-required"
+                or result == "pairing-candidate"
                 or result == "setting"
                 or result == "snapshot"
                 or result == "guardian-added"
                 or result == "guardian-removed"
                 or result == "stopped"
+                or result == "requests"
+                or result == "history-batch"
+                or result == "request-denied"
             )
                     and "applied"
                 or "rejected"
+            if item.kind == "request-decision" or item.kind == "request-prompts" then
+                ns.TransportRequest(t, peer, "request-list", { "1" }, 60)
+                ns.TransportRequest(t, peer, "sync", {}, 60)
+            end
+            local inbox = t.family.guardianInbox and t.family.guardianInbox[peer]
+            if inbox then
+                if fields[2] == "state" then
+                    inbox.state = "accepted"
+                elseif result == "guardian-approval-required" then
+                    inbox.state = "awaiting-approval"
+                elseif result == "declined" then
+                    inbox.state = "declined"
+                end
+            end
             if fields[2] == "state" then
                 local child = t.family.profile.childProfiles[peer]
                 child.revision, child.members = tonumber(fields[7]), {}
@@ -425,6 +515,9 @@ function ns.TransportReceive(t, peer, packet)
         or fields[2] == "ack"
         or fields[2] == "state"
         or fields[2] == "setting"
+        or fields[2] == "requests"
+        or fields[2] == "pairing-candidate"
+        or fields[2] == "history-batch"
         or (fields[2] == "snapshot" and #fields ~= 7)
     then
         return false
@@ -455,17 +548,29 @@ function ns.TransportTick(t)
             t.incoming[key] = nil
         end
     end
+    local ordered = {}
     for _, item in ipairs(t.work) do
+        if not historyKind(item.kind) then
+            ordered[#ordered + 1] = item
+        end
+    end
+    for _, item in ipairs(t.work) do
+        if historyKind(item.kind) then
+            ordered[#ordered + 1] = item
+        end
+    end
+    for _, item in ipairs(ordered) do
         if item.state == "pending" or item.state == "delivered" then
             local child = t.family.profile.childProfiles[item.peer]
             if now >= item.deadline then
                 forget(t, item, "expired")
             elseif
-                not t.io.friends()[item.peer]
-                or (not item.reply and item.kind ~= "pair" and item.kind ~= "sync" and (not child or child.generation ~= item.generation))
+                not ns.PairingWorkValid(t, item)
+                or not t.io.friends()[item.peer]
+                or (not item.reply and item.kind ~= "pair" and item.kind ~= "sync" and item.kind ~= "guardian-request" and item.kind ~= "guardian-accept" and item.kind ~= "guardian-decline" and (not child or child.generation ~= item.generation))
                 or (
                     item.reply
-                    and (item.kind == "state" or item.kind == "setting" or item.kind == "snapshot")
+                    and (item.kind == "state" or item.kind == "setting" or item.kind == "snapshot" or item.kind == "requests" or item.kind == "pairing-candidate" or item.kind == "history-batch")
                     and not ns.CanControl(t.family.profile, item.peer, item.generation)
                 )
             then

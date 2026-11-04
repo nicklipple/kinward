@@ -17,12 +17,44 @@ function ns.NewWoWTransport(family, instance, verified)
     if registered ~= 0 and registered ~= 1 then
         return nil, "prefix-unavailable"
     end
-    ---@return table<string, boolean>, table<string, number>, table<number, string>
+    ---@return table<string, boolean>, table<string, number>, table<number, string>, table<string, string|false>
     local function discover()
         local friends, routes, senders, ambiguous = {}, {}, {}, {}
+        ---@type table<string, string|false>
+        local names = {}
+        local function alias(name, peer)
+            local key = ns.CharacterKey(name) or name:lower()
+            if names[key] ~= nil and names[key] ~= peer then
+                names[key] = false
+            else
+                names[key] = peer
+            end
+        end
         local count = BNGetNumFriends()
+        if
+            not canaccessvalue(count)
+            or type(count) ~= "number"
+            or count < 0
+            or count > 200
+            or count % 1 ~= 0
+        then
+            return {}, {}, {}, {}
+        end
+        local incomplete = false
         for friendIndex = 1, math.min(count, 200) do
             local account = C_BattleNet.GetFriendAccountInfo(friendIndex)
+            if not account or not canaccessvalue(account.isFriend) then
+                return {}, {}, {}, {}
+            end
+            if
+                account.isFriend
+                and (
+                    not canaccessvalue(account.battleTag)
+                    or not ns.ValidIdentifier(account.battleTag)
+                )
+            then
+                return {}, {}, {}, {}
+            end
             if
                 account
                 and canaccessvalue(account.battleTag)
@@ -32,7 +64,17 @@ function ns.NewWoWTransport(family, instance, verified)
             then
                 local peer = account.battleTag
                 friends[peer] = true
+                alias(peer, peer)
                 local games = C_BattleNet.GetFriendNumGameAccounts(friendIndex)
+                if
+                    not canaccessvalue(games)
+                    or type(games) ~= "number"
+                    or games < 0
+                    or games > 32
+                    or games % 1 ~= 0
+                then
+                    return {}, {}, {}, {}
+                end
                 for gameIndex = 1, math.min(games, 32) do
                     local game = C_BattleNet.GetFriendGameAccountInfo(friendIndex, gameIndex)
                     if
@@ -45,6 +87,22 @@ function ns.NewWoWTransport(family, instance, verified)
                         and game.isOnline
                         and game.wowProjectID == WOW_PROJECT_ID
                     then
+                        if
+                            canaccessvalue(game.characterName)
+                            and canaccessvalue(game.realmName)
+                            and type(game.characterName) == "string"
+                            and type(game.realmName) == "string"
+                        then
+                            local key = ns.CharacterKey(game.characterName, game.realmName)
+                            if key then
+                                alias(key, peer)
+                                alias(game.characterName, peer)
+                            else
+                                incomplete = true
+                            end
+                        else
+                            incomplete = true
+                        end
                         local handle = game.gameAccountID
                         if routes[peer] and routes[peer] ~= handle then
                             ambiguous[peer] = true
@@ -59,13 +117,21 @@ function ns.NewWoWTransport(family, instance, verified)
         end
         for peer in pairs(ambiguous) do
             routes[peer] = nil
+            for name, owner in pairs(names) do
+                if owner == peer then
+                    names[name] = false
+                end
+            end
             for handle, owner in pairs(senders) do
                 if owner == peer then
                     senders[handle] = nil
                 end
             end
         end
-        return friends, routes, senders
+        if incomplete then
+            names = {}
+        end
+        return friends, routes, senders, names
     end
     local t = ns.NewTransport(family, {
         instance = instance,
@@ -73,6 +139,11 @@ function ns.NewWoWTransport(family, instance, verified)
         friends = function()
             local friends = discover()
             return friends
+        end,
+        findPeer = function(name)
+            local _, _, _, names = discover()
+            local peer = names[ns.CharacterKey(name) or name:lower()]
+            return type(peer) == "string" and peer or nil
         end,
         resolve = function(peer)
             local _, routes = discover()
@@ -101,6 +172,7 @@ function ns.NewWoWTransport(family, instance, verified)
             return "send-error"
         end,
     })
+    t.pairingPolling = true
     local frame = CreateFrame("Frame")
     frame:RegisterEvent("BN_CHAT_MSG_ADDON")
     frame:SetScript("OnEvent", function(_, _, receivedPrefix, packet, _, senderID)
@@ -119,11 +191,35 @@ function ns.NewWoWTransport(family, instance, verified)
         local _, _, senders = discover()
         local peer = senders[senderID]
         if peer then
+            local previous = family.guardianInbox and family.guardianInbox[peer]
+            local previousToken = previous and previous.token
             ns.TransportReceive(t, peer, packet)
+            local request = family.guardianInbox and family.guardianInbox[peer]
+            if
+                request
+                and request.state == "pending"
+                and request.token ~= previousToken
+                and family.profile.role == "guardian"
+            then
+                print(
+                    "Guardian: "
+                        .. peer:gsub("|", "||")
+                        .. " requested guardianship. Accept or decline in Family."
+                )
+                -- Only the verified live profile can open the live dashboard.
+                if ns.settings == family.profile then
+                    ns.dashboard = ns.dashboard or ns.NewDashboard(family.profile, t, GetServerTime)
+                    ns.dashboard.transport = t
+                    ns.ShowDashboard(ns.dashboard, "family")
+                end
+            end
         end
     end)
     local nextSync = 0
     frame:SetScript("OnUpdate", function()
+        ns.TickGuardianship(t)
+        ns.PollHistory(t)
+        ns.PollRequests(t)
         ns.TransportTick(t)
         local now = GetServerTime()
         if now >= nextSync then

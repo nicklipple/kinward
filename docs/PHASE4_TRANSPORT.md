@@ -1,5 +1,9 @@
 # Phase 4 transport and dashboard
 
+Current user-facing pairing is [name request and one-click acceptance](PAIRING.md).
+Older code/operation-entry procedures below remain diagnostic regression fixtures;
+the normal Family UI no longer requires them.
+
 Implementation status: shared transport, synchronization, dashboard and isolated
 network simulation are implemented. **Phase 4 live acceptance remains open.**
 No actual client, two-account delivery, alt transition, widget rendering, taint
@@ -10,12 +14,12 @@ still unverified and two test accounts are unavailable. Consequently Core does
 not activate the candidate WoW adapter. `/guardian ui` opens a local dashboard;
 `/guardian role guardian` or `role child` saves a role only while unpaired without
 children. The window has a child selector, role buttons and Permissions, Family
-& pairing, and Activity tabs. Read/send rows have separate Allow/Block controls
+& pairing, Requests, Activity, and Connection tabs. Read/send rows have separate Allow/Block controls
 and colored saved/pending/delivered states. Whisper controls specify a character
 or account target and clearly apply bidirectionally. Family provides peer/code
 fields, pairing and sync buttons, exact pending-peer confirmation, additional
 guardian approval and membership removal. Destructive actions require a second
-confirmation bound to the original child and peer. Activity retains detailed
+confirmation bound to the original child and peer. Connection retains detailed
 acknowledgements, deadlines and last-contact evidence. Unavailable live actions
 are disabled. The command interface remains available through slash commands;
 ordinary use of the visual window requires no console commands.
@@ -235,7 +239,7 @@ client runs; no `network-pump` command is needed.
 4. Switch to **parent**, click **Sync child**, wait for acknowledgement, and open
    **Permissions**. The child now appears in the selector. Click Party read
    **Allow**; read changes through Pending/Delivered to Allowed, while send
-   remains blocked. **Activity** shows the applied acknowledgement and revision.
+   remains blocked. **Connection** shows the applied acknowledgement and revision.
 5. Switch to **child** to inspect its effective saved permissions. Changes to
    the guardian's selected child never write another child's policy.
 6. **Toggle child link** disconnects/reconnects the selected child (default

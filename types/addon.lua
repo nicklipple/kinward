@@ -1,3 +1,5 @@
+---@alias GuardianClock fun(): number
+
 ---@meta
 
 ---@class GuardianSettings
@@ -213,10 +215,10 @@ SLASH_GUARDIANSIM1 = "/guardiansim"
 ---@field TransportTick fun(t: GuardianTransport)
 ---@field TransportPresence fun(t: GuardianTransport, peer: string): string, number?
 ---@field NewWoWTransport fun(family: GuardianFamily, instance: string, verified: boolean): GuardianTransport?, string
----@field NewDashboard fun(profile: GuardianSettings, transport?: GuardianTransport, now?: fun(): number): GuardianDashboard
+---@field NewDashboard fun(profile: GuardianSettings, transport?: GuardianTransport, now?: GuardianClock, chat?: GuardianChat): GuardianDashboard
 ---@field DashboardCommand fun(d: GuardianDashboard, message: string): string
 ---@field DashboardText fun(d: GuardianDashboard): string
----@field ShowDashboard fun(d: GuardianDashboard)
+---@field ShowDashboard fun(d: GuardianDashboard, section?: string)
 ---@field dashboard? GuardianDashboard
 
 ---@class GuardianNetworkSimulator
@@ -246,3 +248,254 @@ SLASH_GUARDIANSIM1 = "/guardiansim"
 ---@field DashboardAction fun(d: GuardianDashboard, kind: string, args: string[]): string
 ---@field DashboardPermission fun(d: GuardianDashboard, child: string?, channel: string, direction: 'read'|'send', target?: string): string, number, number, number
 ---@field ShowNetworkDemo? fun()
+
+---@class GuardianChat
+---@field profile GuardianSettings
+---@field context fun(): GuardianContext
+---@field seen table<string, {allowed: boolean, reason: string}>
+---@field order string[]
+---@field decisions integer
+---@field blockedReads integer
+---@field blockedSends integer
+---@field attemptedSends integer
+---@field observedOutputs integer Local whisper output events, not delivery receipts.
+
+---@class GuardianChatIO
+---@field prompt? fun(character: string) Open the child dashboard; no message body.
+---@field account fun(character: string): string? Current verified BN friend, or nil.
+---@field freshSession fun(): string Fresh login token; must not repeat a saved token.
+
+---@class GuardianWoWChat
+---@field chat GuardianChat
+---@field stop fun(): string
+
+---@class GuardianNamespace
+---@field NewChat fun(profile: GuardianSettings, context: fun(): GuardianContext): GuardianChat
+---@field ChatDecision fun(chat: GuardianChat, channel: string, direction: 'read'|'send', identity?: GuardianIdentity, line?: number): boolean, string
+---@field NewWoWChat fun(profile: GuardianSettings, io: GuardianChatIO, verified: boolean): GuardianWoWChat?, string
+
+---@class GuardianNamespace
+---@field chat? GuardianWoWChat
+
+---@class GuardianNetworkSimulator
+---@field chats table<string, GuardianChat>
+
+---@class GuardianNamespace
+---@field ResolveWoWChatAccount fun(character: string): string?
+
+---@class GuardianRequest
+---@field id string
+---@field generation string
+---@field channel string
+---@field direction 'read'|'send'
+---@field target string
+---@field reason string
+---@field expires number
+---@field state 'pending'|'approved'|'denied'|'cancelled'|'expired'
+---@field baseRevision number
+---@field sessionId string
+
+---@class GuardianRequestState
+---@field requests? table<string, GuardianRequest>
+---@field generation string
+---@field requestPrompts? boolean
+---@field requestSequence? number
+
+---@class GuardianSettings
+---@field requests? table<string, GuardianRequest>
+---@field requestPrompts? boolean
+---@field requestSequence? number
+
+---@class GuardianChildProfile
+---@field requests? table<string, GuardianRequest>
+---@field requestPrompts? boolean
+
+---@class GuardianChat
+---@field promptSeen? table<string, number>
+---@field nextPrompt? number
+---@field prompt? {character: string, expires: number, generation: string}
+
+---@class GuardianTransport
+---@field nextRequestPoll? number
+
+---@class GuardianDashboard
+---@field chat? GuardianChat
+
+---@class GuardianNamespace
+---@field ValidRequest fun(r: unknown): boolean
+---@field ValidRequestState fun(profile: GuardianRequestState): boolean
+---@field ExpireRequests fun(profile: GuardianSettings, now: number)
+---@field RequestRows fun(profile: GuardianSettings, now: number): GuardianRequest[]
+---@field CreateRequest fun(profile: GuardianSettings, id: string, channel: string, direction: 'read'|'send', target: string, reason: string, now: number): GuardianRequest?, string
+---@field CancelRequest fun(profile: GuardianSettings, id: string, now: number): boolean, string
+---@field ApplyRequestDecision fun(profile: GuardianSettings, fields: string[], now: number, applyPolicy: fun(fields: string[]): string): string
+---@field ChatWhisperPrompt fun(chat: GuardianChat, identity: GuardianIdentity)
+---@field RequestPage fun(profile: GuardianSettings, fields: string[], now: number): string?
+---@field AcceptRequestPage fun(t: GuardianTransport, peer: string, fields: string[], item: GuardianDelivery): boolean
+---@field PollRequests fun(t: GuardianTransport)
+
+---@class GuardianTransport
+---@field requestSnapshots? table<string, {generation: string, cursor: number, requests: table<string, GuardianRequest>}>
+
+---@class GuardianHistoryRecord
+---@field seq number
+---@field time number
+---@field endedAt number
+---@field direction 'read'|'send'|'system'
+---@field channel string
+---@field character string
+---@field account string
+---@field disposition string
+---@field text string
+---@field truncated boolean
+
+---@class GuardianHistory
+---@field generation string
+---@field records GuardianHistoryRecord[]
+---@field high number
+---@field pruned number
+---@field expired number
+---@field retention number
+---@field maxRecords number
+---@field lastSeen number
+---@field cursor? number
+---@field updatedAt? number
+---@field cacheRemoved? number
+
+---@class GuardianHistoryFilters
+---@field channel? string
+---@field direction? string
+---@field disposition? string
+---@field identity? string
+---@field seconds? number
+---@field from? number
+---@field to? number
+
+---@class GuardianCapturePending
+---@field generation string
+---@field time number
+---@field channel string
+---@field identity? GuardianIdentity
+---@field text string
+---@field truncated boolean
+
+---@class GuardianSettings
+---@field history? GuardianHistory
+
+---@class GuardianChildProfile
+---@field history? GuardianHistory
+
+---@class GuardianChat
+---@field monitoring? boolean
+---@field captureStarted? boolean
+---@field nextCaptureGap? number
+---@field captureSeen? table<string, boolean>
+---@field captureOrder? string[]
+---@field pendingCaptures? GuardianCapturePending[]
+---@field recentCaptures? GuardianCapturePending[]
+---@field restrictedSince? number
+
+---@class GuardianTransport
+---@field historyWatching? table<string, boolean>
+---@field nextHistoryPoll? number
+
+---@class GuardianChatIO
+---@field selfCharacter? fun(): string? Verified normalized current local character.
+
+---@class GuardianNamespace
+---@field NewHistory fun(generation: string): GuardianHistory
+---@field ValidHistoryRecord fun(record: unknown): boolean
+---@field ValidHistory fun(history: unknown, generation: string): boolean
+---@field PruneHistory fun(history: GuardianHistory, now: number)
+---@field HistoryRelationshipChanged fun(profile: GuardianSettings)
+---@field ConfigureHistory fun(profile: GuardianSettings, retention: number, count: number, now: number): boolean
+---@field AppendHistory fun(profile: GuardianSettings, now: number, direction: 'read'|'send'|'system', channel: string, identity: GuardianIdentity?, disposition: string, body: string, endedAt?: number): GuardianHistoryRecord?
+---@field HistoryBatch fun(profile: GuardianSettings, fields: string[], now: number): string?
+---@field AcceptHistoryBatch fun(t: GuardianTransport, peer: string, fields: string[], item: GuardianDelivery): boolean
+---@field WatchHistory fun(t: GuardianTransport, peer: string): boolean
+---@field PollHistory fun(t: GuardianTransport)
+---@field HistoryView fun(profile: GuardianSettings, peer: string, filters: GuardianHistoryFilters, now: number): GuardianHistoryRecord[]
+---@field HistoryGap fun(chat: GuardianChat, reason: string, since?: number)
+---@field CaptureRead fun(chat: GuardianChat, channel: string, identity: GuardianIdentity?, body: string?, allowed: boolean, line: number?, gapReason?: string)
+---@field CaptureSend fun(chat: GuardianChat, channel: string, identity: GuardianIdentity?, body: string?, allowed: boolean)
+---@field CaptureOutput fun(chat: GuardianChat, channel: string, identity: GuardianIdentity?, body: string?, line: number?)
+---@field FlushHistorySends fun(chat: GuardianChat, force?: boolean)
+---@field HistoryHeartbeat fun(chat: GuardianChat, restricted: boolean)
+
+---@class GuardianNamespace
+---@field SimHistorySamples fun(network: GuardianNetworkSimulator, child: string)
+
+---@alias GuardianClick fun()
+---@alias GuardianActivityRefresh fun(visible: boolean, canEdit: boolean)
+
+---@class GuardianActivityWidgets
+---@field button fun(parent: Frame, x: number, y: number, width: number, caption: string, callback: GuardianClick): Button
+---@field input fun(parent: Frame, x: number, y: number, width: number): EditBox
+---@field label fun(parent: Frame, x: number, y: number, width: number, value: string, font?: string): FontString
+
+---@class GuardianNamespace
+---@field NewActivityPanel fun(d: GuardianDashboard, activity: Frame, widgets: GuardianActivityWidgets): GuardianActivityRefresh
+
+---@class GuardianNamespace
+---@field PruneProfileHistory fun(profile: GuardianSettings, now: number)
+
+---@class GuardianPairingProposal
+---@field peer string
+---@field token string
+---@field generation string
+---@field expires number
+---@field state string
+---@field operation? string
+---@field sequence? string
+
+---@class GuardianPairingInbox: GuardianPairingProposal
+---@field sequence string
+
+---@class GuardianPairingReceipt
+---@field peer string
+---@field token string
+---@field requestGeneration string
+---@field generation string
+---@field operation string
+---@field sequence string
+---@field expires number
+
+---@class GuardianFamily
+---@field proposal? GuardianPairingProposal
+---@field guardianInbox? table<string, GuardianPairingInbox>
+
+---@class GuardianSettings
+---@field pairingReceipt? GuardianPairingReceipt
+
+---@class GuardianTransportIO
+---@field findPeer? fun(name: string): string? Resolve only current unambiguous verified friend aliases.
+
+---@class GuardianTransport
+---@field nextPairingPoll? number
+---@field pairingPolling? boolean
+---@field guardianCandidates? table<string, {peer: string, token: string, generation: string, expires: number}>
+
+---@alias GuardianFamilyConfirm fun(caption: string, kind: string, args: string[])
+---@alias GuardianPairingRefresh fun(canEdit: boolean, visible: boolean)
+
+---@class GuardianNamespace
+---@field ValidPairingReceipt fun(profile: GuardianSettings): boolean
+---@field StorePairingReceipt fun(endpoint: GuardianFamily, proposal?: GuardianPairingProposal)
+---@field RequestGuardianship fun(t: GuardianTransport, name: string, expectedPeer?: string): boolean, string
+---@field AnswerGuardianship fun(t: GuardianTransport, peer: string, token: string, accept: boolean): boolean, string
+---@field ReceiveGuardianship fun(endpoint: GuardianFamily, peer: string, fields: string[], now: number, friends: table<string, boolean>): boolean, string, string?
+---@field AcceptGuardianCandidate fun(t: GuardianTransport, peer: string, fields: string[], item: GuardianDelivery): boolean
+---@field TickGuardianship fun(t: GuardianTransport)
+---@field PairingWorkValid fun(t: GuardianTransport, item: GuardianDelivery): boolean
+---@field NewPairingPanel fun(d: GuardianDashboard, family: Frame, widgets: GuardianActivityWidgets, confirm: GuardianFamilyConfirm): GuardianPairingRefresh
+
+---@class GuardianNamespace
+---@field ResolveGuardianPeer fun(t: GuardianTransport, name: string): string?
+
+---@class GuardianDashboard
+---@field focusSection? fun(section: string)
+
+---@class GuardianNamespace
+---@field minimapButton? Button
+---@field InstallMinimapButton fun(): Button?
+---@field OpenDashboard fun()

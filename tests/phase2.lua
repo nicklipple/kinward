@@ -29,8 +29,13 @@ for _, file in ipairs({
     "Policy.lua",
     "Profile.lua",
     "Session.lua",
+    "Requests.lua",
+    "History.lua",
+    "HistoryCapture.lua",
     "Protocol.lua",
     "Family.lua",
+    "Pairing.lua",
+    "Chat.lua",
     "scripts/probes/Phase2Simulator.lua",
 }) do
     local chunk = assert(loadfile(file))
