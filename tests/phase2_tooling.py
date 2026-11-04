@@ -23,6 +23,8 @@ with tempfile.TemporaryDirectory() as directory:
     tool.TOC, tool.STAGED = root / 'Kinward.toc', root / 'Phase2Simulator.lua'
     manifest.ROOT = manifest.ADDON = root
     manifest.validate()
+    tool.toggle('remove')
+    assert tool.TOC.read_bytes() == toc and not tool.STAGED.exists()
     tool.toggle('install')
     try:
         manifest.validate()
@@ -47,4 +49,6 @@ with tempfile.TemporaryDirectory() as directory:
     tool.toggle('remove')
     assert tool.TOC.read_bytes() == toc and not tool.STAGED.exists()
     manifest.validate()
+    tool.toggle('remove')
+    assert tool.TOC.read_bytes() == toc and not tool.STAGED.exists()
 print('ok - simulator staging, conflict preservation, exact TOC restoration and package rejection')

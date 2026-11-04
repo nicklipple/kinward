@@ -1,4 +1,4 @@
-.PHONY: bootstrap format format-check lint manifest test check package
+.PHONY: bootstrap format format-check lint manifest test check package stage-simulator unstage-simulator
 bootstrap:
 	python3 scripts/bootstrap.py
 format:
@@ -24,3 +24,8 @@ test:
 check: format-check lint manifest test
 package: check
 	python3 scripts/manifest.py --package
+
+stage-simulator:
+	python3 scripts/phase2_simulator.py install
+unstage-simulator:
+	python3 scripts/phase2_simulator.py remove

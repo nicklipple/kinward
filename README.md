@@ -39,6 +39,19 @@ Re-run the deliberate failure probes (temporarily edits files, always restores):
 python3 scripts/verify_guardrails.py
 ```
 
+If the development simulator is staged, remove it before packaging:
+
+```sh
+make unstage-simulator
+make package
+```
+
+`make stage-simulator` enables it again for `/kinward demo`. Staging copies the
+simulator from `scripts/probes/` to the addon root and adds its TOC load entry;
+unstaging removes that copy and entry, keeping the source. Unstaging is safe to
+repeat and refuses to remove a copy with local edits. Reload WoW after changing
+staging to update the loaded simulator hooks and slash commands.
+
 The zip is `dist/Kinward-0.1.0.zip` with a single top-level `Kinward/` directory.
 The development checkout currently lives at
 `_retail_/Interface/AddOns/Kinward/`, as requested until Forever releases.

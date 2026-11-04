@@ -22,6 +22,9 @@ def toggle(action):
             raise
         print('Simulator staged, inactive. Reload client; then /kinward demo for visual testing, or /kinwardsim reset.')
     elif action == 'remove':
+        if not STAGED.exists() and 'Phase2Simulator.lua' not in toc:
+            print('Simulator already unstaged.')
+            return
         if ENTRY not in toc:
             raise ValueError('Exact simulator TOC marker missing; refusing to alter files')
         if STAGED.exists() and STAGED.read_bytes() != SOURCE.read_bytes():

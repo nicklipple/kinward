@@ -22,6 +22,3 @@ WoWChat.lua
 Settings.lua
 Minimap.lua
 Core.lua
-
-# Kinward phase 2 development simulator (do not release)
-Phase2Simulator.lua

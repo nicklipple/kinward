@@ -14,7 +14,7 @@ def validate():
     if (ROOT / 'Phase1Probe.lua').exists() or 'Phase1Probe.lua' in (ROOT / 'Kinward.toc').read_text():
         raise ValueError('Development probe staged; run python3 scripts/phase1_probe.py remove before checking/packaging')
     if (ROOT / 'Phase2Simulator.lua').exists() or 'Phase2Simulator.lua' in (ROOT / 'Kinward.toc').read_text():
-        raise ValueError('Development simulator staged; run python3 scripts/phase2_simulator.py remove before checking/packaging')
+        raise ValueError('Development simulator staged; run make unstage-simulator before checking/packaging')
     seen = set()
     files = ['Kinward.toc']
     def include(raw, parent):
