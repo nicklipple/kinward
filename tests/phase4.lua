@@ -476,10 +476,13 @@ test(
             assert(t.io.send(42, "test") == expected[2])
         end
         local count = #sent
-        locked = true
-        assert(t.io.send(42, "test") == "lockdown" and #sent == count)
+        code, locked = 0, true
+        assert(t.io.send(42, "test") == "sent" and #sent == count + 1)
         locked, restricted = false, true
-        assert(t.io.send(42, "test") == "lockdown" and #sent == count)
+        assert(t.io.send(42, "test") == "sent" and #sent == count + 2)
+        code = 11
+        assert(t.io.send(42, "test") == "lockdown" and #sent == count + 3)
+        assert(t.traffic.lastSend == "11")
         handle = secret
         assert(not t.io.resolve("parent"))
         t.stop()

@@ -157,3 +157,13 @@ The user reports that alpha2 did not deliver a request to the guardian. The
 specific actual-client delivery failure is not yet diagnosed; do not mark any
 delivery gate passed from the mocked network tests. The automatic runtime build
 requires a real two-account retest.
+
+## User-reported pairing restriction
+
+The user reports that the child sees "WoW is restricting addon messages" during
+pairing. Code inspection found an overbroad preflight that returned lockdown
+from visible-chat restriction flags before attempting Battle.net SendGameData.
+That preflight is removed. Actual SendGameData results remain authoritative,
+including lockdown 11. Mocked network regression tests cover both cases; the
+user's `/kinward status` and an in-game retest are still needed to confirm the
+actual client outcome.

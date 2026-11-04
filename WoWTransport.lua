@@ -154,12 +154,9 @@ function ns.NewWoWTransport(family, instance)
             return routes[peer]
         end,
         send = function(route, packet)
-            if
-                C_ChatInfo.InChatMessagingLockdown()
-                or C_ChatInfo.AreOutgoingAddonChatMessagesRestricted()
-            then
-                return "lockdown"
-            end
+            -- Visible chat restrictions do not establish whether Battle.net
+            -- addon data may be sent. This API returns its own authoritative
+            -- lockdown/throttle/offline result; do not preempt it with a chat flag.
             local result = C_BattleNet.SendGameData(route, prefix, packet)
             if not canaccessvalue(result) or type(result) ~= "number" then
                 traffic.lastSend = "unavailable-result"

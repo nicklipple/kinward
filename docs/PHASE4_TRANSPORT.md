@@ -291,3 +291,24 @@ Changing child or relationship clears the editor and resets contact paging.
 Guardians retain their existing automatic verified-account access. Sync selected
 child fetches saved settings; empty/unknown caches do not establish an empty
 allowlist. No new widget APIs were introduced for this navigation.
+
+## Battle.net send restrictions
+
+The transport calls `C_BattleNet.SendGameData` and handles its
+`SendAddonMessageResult` directly: Success sends, AddonMessageThrottle/
+ChannelThrottle back off, AddOnMessageLockdown waits, and TargetOffline retries
+while the deadline remains valid. It must not infer Battle.net data restrictions
+from `AreOutgoingAddonChatMessagesRestricted` or `InChatMessagingLockdown` before
+calling the API.
+
+The pinned Forever `ChatInfoDocumentation.lua` describes the former as a
+realm-based restriction on outgoing addon-generated chat;
+`Blizzard_Game/Mainline/EventImplementation.lua` uses it to govern the
+CooldownBroadcaster. `BattleNetDocumentation.lua` defines SendGameData and its
+SendAddonMessageResult return. `ChatConstantsDocumentation.lua` maps success to
+0, throttles to 3/8, lockdown to 11, and offline to 12. No WoW restriction is
+bypassed: actual SendGameData failure results are still honored.
+
+Regression tests exercise two complete candidate-adapter clients with the chat
+restriction flags true, and separately verify actual SendGameData result 11
+does not deliver a request or report successful transmission.

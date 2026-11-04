@@ -343,4 +343,46 @@ test("failed game-data sends remain visible rather than pretending request deliv
     assert(not next(parent.ns.transport.family.guardianInbox or {}))
 end)
 
+test("visible chat restrictions do not prevent Battle.net pairing delivery", function()
+    local child, parent, advance = network()
+    for _, c in ipairs({ child, parent }) do
+        c.env.C_ChatInfo.AreOutgoingAddonChatMessagesRestricted = function()
+            return true
+        end
+        c.env.C_ChatInfo.InChatMessagingLockdown = function()
+            return true
+        end
+        c.enter()
+    end
+    assert(child.ns.RequestGuardianship(child.ns.transport, "Parent-Other Realm"))
+    advance()
+    local request = parent.ns.transport.family.guardianInbox["Child#123"]
+    assert(request and request.state == "pending")
+    assert(child.ns.transport.traffic.sent > 0 and child.ns.transport.traffic.lastSend == "0")
+    assert(parent.ns.AnswerGuardianship(parent.ns.transport, "Child#123", request.token, true))
+    advance()
+    assert(child.ns.settings.supervision == "paired" and parent.ns.settings.children["Child#123"])
+end)
+
+test("an actual Battle.net lockdown result defers pairing without claiming delivery", function()
+    local child, parent, advance = network()
+    child.enter()
+    parent.enter()
+    child.env.C_BattleNet.SendGameData = function()
+        return 11
+    end
+    assert(child.ns.RequestGuardianship(child.ns.transport, "Parent-Other Realm"))
+    advance()
+    assert(child.ns.transport.traffic.sent == 0)
+    assert(child.ns.RuntimeStatus():find("last send 11", 1, true))
+    assert(not next(parent.ns.transport.family.guardianInbox or {}))
+    local pending
+    for _, item in ipairs(child.ns.transport.work) do
+        if item.kind == "guardian-request" then
+            pending = item
+        end
+    end
+    assert(pending and pending.state == "pending" and pending.result == "lockdown")
+end)
+
 print(string.format("%d automatic runtime boundary tests passed (mocked Lua %s)", passed, _VERSION))
