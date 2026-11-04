@@ -578,4 +578,85 @@ test(
     end
 )
 
+test("channel history retains names for arbitrary zone channel IDs", function()
+    local child, parent, advance = pairedNetwork()
+    assert(
+        incoming(
+            child,
+            "CHAT_MSG_CHANNEL",
+            "arbitrary channel message",
+            987,
+            "Visitors - Test Area"
+        )
+    )
+    assert(parent.ns.WatchHistory(parent.ns.transport, "Child#123"))
+    advance(30)
+    local rows = parent.ns.HistoryView(
+        parent.ns.settings,
+        "Child#123",
+        { channel = "channel:zone:987" },
+        2000
+    )
+    assert(#rows == 1 and rows[1].channel == "channel:zone:987|Visitors - Test Area")
+    assert(parent.ns.HistoryChannelLabel(rows[1].channel) == "Visitors - Test Area")
+    assert(parent.ns.HistoryChannelBase(rows[1].channel) == "channel:zone:987")
+end)
+
+test(
+    "joined channel inventory includes silent arbitrary channels and tracks join and leave",
+    function()
+        local child, parent, advance = pairedNetwork()
+        local names = { [1] = "Newcomer Chat", [7] = "Silent Room", [20] = "Visitors" }
+        child.env.GetChannelName = function(number)
+            return names[number] and number or 0, names[number]
+        end
+        child.env.C_ChatInfo.GetChannelInfoFromIdentifier = function(name)
+            return {
+                name = name,
+                zoneChannelID = name == "Newcomer Chat" and 32 or name == "Visitors" and 987 or 0,
+            }
+        end
+        advance(45)
+        local t = parent.ns.transport
+        local joined = assert(t.joinedChannels["Child#123"])
+        assert(#joined == 3)
+        local indexed = {}
+        for _, row in ipairs(joined) do
+            indexed[row[1]] = row[2]
+        end
+        assert(indexed["channel:zone:32"] == "Newcomer Chat")
+        assert(indexed["channel:zone:987"] == "Visitors")
+        assert(indexed["channel:custom:silent room"] == "Silent Room")
+        for _, record in ipairs(child.ns.settings.history.records) do
+            assert(not record.channel:find("^channel:")) -- discovery requires no channel traffic
+        end
+        for _, direction in ipairs({ "read", "send" }) do
+            parent.ns.DashboardAction(
+                parent.ns.dashboard,
+                "policy",
+                { "Child#123", "channel:zone:32", direction, "indefinite", "", "", "" }
+            )
+        end
+        advance(20)
+        assert(not incoming(child, "CHAT_MSG_CHANNEL", "allowed newcomer", 32, "Newcomer Chat"))
+        assert(incoming(child, "CHAT_MSG_CHANNEL", "blocked visitors", 987, "Visitors"))
+        child.env.C_ChatInfo.SendChatMessage("allowed outgoing", "CHANNEL", nil, 1)
+        child.env.C_ChatInfo.SendChatMessage("blocked outgoing", "CHANNEL", nil, 20)
+        assert(child.sends() == 1)
+        names[7], names[20], names[9] = nil, nil, "Joined Later"
+        advance(45)
+        joined = assert(t.joinedChannels["Child#123"])
+        assert(#joined == 2)
+        indexed = {}
+        for _, row in ipairs(joined) do
+            indexed[row[1]] = row[2]
+        end
+        assert(indexed["channel:custom:joined later"] == "Joined Later")
+        assert(not indexed["channel:zone:987"] and not indexed["channel:custom:silent room"])
+        t.family.profile.children["Child#123"] = nil
+        parent.ns.PollChannels(t)
+        assert(not t.joinedChannels["Child#123"])
+    end
+)
+
 print(string.format("%d automatic runtime boundary tests passed (mocked Lua %s)", passed, _VERSION))

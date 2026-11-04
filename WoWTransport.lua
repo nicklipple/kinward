@@ -134,6 +134,28 @@ function ns.NewWoWTransport(family, instance)
         end
         return friends, routes, senders, names
     end
+    family.channels = function()
+        local rows, seen = {}, {}
+        for number = 1, 20 do
+            local _, name = GetChannelName(number)
+            if
+                canaccessvalue(name)
+                and type(name) == "string"
+                and #name > 0
+                and #name <= 128
+                and not name:find("[|%c]")
+            then
+                local info = C_ChatInfo.GetChannelInfoFromIdentifier(name)
+                if info and canaccessvalue(info.zoneChannelID) then
+                    local key = ns.PublicChannelKey(name, info.zoneChannelID)
+                    if key ~= "channel:unknown" and not seen[key] then
+                        rows[#rows + 1], seen[key] = { key, name }, true
+                    end
+                end
+            end
+        end
+        return rows
+    end
     ---@type KinwardTraffic
     local traffic =
         { sent = 0, received = 0, unmapped = 0, lastSend = "none", lastReceive = "none" }
@@ -234,6 +256,7 @@ function ns.NewWoWTransport(family, instance)
     local nextSync = 0
     frame:SetScript("OnUpdate", function()
         ns.TickGuardianship(t)
+        ns.PollChannels(t)
         ns.PollHistory(t)
         ns.PollRequests(t)
         ns.TransportTick(t)

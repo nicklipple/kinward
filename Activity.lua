@@ -37,9 +37,17 @@ local outcomes = {
 }
 
 ---@param record KinwardHistoryRecord
+---@param inventory? string[][]
 ---@return string
-local function chatLine(record)
-    local spec = chatChannels[record.channel] or { record.channel, "ffffcc66" }
+local function chatLine(record, inventory)
+    local base = ns.HistoryChannelBase(record.channel)
+    local spec = chatChannels[base] or { ns.HistoryChannelLabel(record.channel), "ffffcc66" }
+    for _, channel in ipairs(inventory or {}) do
+        if channel[1] == base then
+            spec = { channel[2], spec[2] }
+            break
+        end
+    end
     local who = record.character ~= "" and record.character
         or record.account ~= "" and record.account
         or "Unknown identity"
@@ -131,8 +139,18 @@ function ns.NewActivityPanel(d, activity, widgets)
         local view = d.profile.role == "guardian"
             and d.selectedChild
             and d.profile.childProfiles[d.selectedChild]
+        for _, channel in
+            ipairs(
+                d.transport
+                        and d.transport.joinedChannels
+                        and d.transport.joinedChannels[d.selectedChild or ""]
+                    or {}
+            )
+        do
+            add(channel[1], channel[2])
+        end
         for _, record in ipairs(view and view.history and view.history.records or {}) do
-            add(record.channel, record.channel:gsub("^channel:custom:", "Custom: "))
+            add(ns.HistoryChannelBase(record.channel), ns.HistoryChannelLabel(record.channel))
         end
         for _, spec in ipairs(options) do
             rootDescription:CreateRadio(plain(spec[2]), function()
@@ -243,7 +261,10 @@ function ns.NewActivityPanel(d, activity, widgets)
                     lines[#lines + 1] = "|cffffd100[" .. day .. "]|r"
                     lastDay = day
                 end
-                lines[#lines + 1] = chatLine(record)
+                lines[#lines + 1] = chatLine(
+                    record,
+                    t and t.joinedChannels and t.joinedChannels[d.selectedChild or ""]
+                )
             end
             historyText:SetText(
                 #lines > 0 and table.concat(lines, "\n")

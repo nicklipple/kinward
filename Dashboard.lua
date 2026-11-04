@@ -587,18 +587,16 @@ function ns.ShowDashboard(d, section)
     permissionUI.body:SetSize(674, #channels * 40)
     permissionUI.scroll:SetScrollChild(permissionUI.body)
     local rows = {}
-    for i, spec in ipairs(channels) do
-        local channel = spec[1]
+    for i = 1, 64 do
         local y = (i - 1) * 40
-        label(permissionUI.body, 14, y + 5, 130, spec[2])
+        local caption = label(permissionUI.body, 14, y + 5, 130, "")
         for j, direction in ipairs({ "read", "send" }) do
             local x = 150 + (j - 1) * 260
-            local state =
-                label(permissionUI.body, x, y + 5, 85, "Unknown", "GameFontHighlightSmall")
-            local buttons = {}
+            local row = { channel = "", direction = direction, caption = caption, buttons = {} }
+            row.state = label(permissionUI.body, x, y + 5, 85, "Unknown", "GameFontHighlightSmall")
             for k, verb in ipairs({ "Allow", "Block" }) do
                 local mode = k == 1 and "indefinite" or "revoke"
-                buttons[k] = button(
+                row.buttons[k] = button(
                     permissionUI.body,
                     x + 88 + (k - 1) * 59,
                     y,
@@ -608,13 +606,12 @@ function ns.ShowDashboard(d, section)
                         ns.DashboardAction(
                             d,
                             "policy",
-                            { d.selectedChild or "", channel, direction, mode, "", "", "" }
+                            { d.selectedChild or "", row.channel, direction, mode, "", "", "" }
                         )
                     end
                 )
             end
-            rows[#rows + 1] =
-                { channel = channel, direction = direction, state = state, buttons = buttons }
+            rows[#rows + 1] = row
         end
     end
     label(permissionUI.channels, 14, 323, 300, "Named custom channel", "GameFontHighlightSmall")
@@ -1205,13 +1202,38 @@ function ns.ShowDashboard(d, section)
                 or "Select a child, or pair one in Family"
             )
         selection:SetText(plain(summary))
-        for _, row in ipairs(rows) do
-            local value, r, g, b =
-                ns.DashboardPermission(d, d.selectedChild, row.channel, row.direction)
-            row.state:SetText(value)
-            row.state:SetTextColor(r, g, b)
-            for _, control in ipairs(row.buttons) do
-                control:SetEnabled(canEdit)
+        local displayed = {}
+        local joined = t and t.joinedChannels and t.joinedChannels[d.selectedChild or ""]
+        for _, spec in ipairs(channels) do
+            if (not joined and not (t and t.family.channels)) or not spec[1]:find("^channel:") then
+                displayed[#displayed + 1] = spec
+            end
+        end
+        for _, spec in ipairs(joined or {}) do
+            displayed[#displayed + 1] = spec
+        end
+        permissionUI.body:SetHeight(math.max(286, #displayed * 40))
+        for i, row in ipairs(rows) do
+            local spec = displayed[math.ceil(i / 2)]
+            if spec then
+                row.channel = spec[1]
+                row.caption:SetText(plain(spec[2]))
+                row.caption:Show()
+                row.state:Show()
+                local value, r, g, b =
+                    ns.DashboardPermission(d, d.selectedChild, row.channel, row.direction)
+                row.state:SetText(value)
+                row.state:SetTextColor(r, g, b)
+                for _, control in ipairs(row.buttons) do
+                    control:Show()
+                    control:SetEnabled(canEdit)
+                end
+            else
+                row.caption:Hide()
+                row.state:Hide()
+                for _, control in ipairs(row.buttons) do
+                    control:Hide()
+                end
             end
         end
         permissionUI.channelTab:SetEnabled(permissionUI.section ~= "channels")

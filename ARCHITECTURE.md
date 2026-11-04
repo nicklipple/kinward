@@ -393,3 +393,31 @@ reload/session behavior. These establish wiring, not actual game-client results.
 BN_CONNECTED and PLAYER_ENTERING_WORLD source evidence appears in pinned
 Blizzard_FriendsFrame/Mainline/FriendsFrame.lua; the frame OnUpdate API is already
 used/evidenced by the dashboard and adapters. See docs/PAIRING.md for diagnostics.
+
+
+## Joined channel inventory
+
+The live transport enumerates the child's joined channels independently of chat
+traffic. It uses numeric `GetChannelName` slots, as demonstrated in the pinned
+Forever `Blizzard_ChatFrameBase/Shared/ChatFrameUtil.lua`
+(`GetCommunitiesChannel`); the maximum of 20 is recorded in
+`Blizzard_APIDocumentationGenerated/ChatConstantsDocumentation.lua`
+(`ChatFrameConstants.MaxChatChannels`). The existing
+`C_ChatInfo.GetChannelInfoFromIdentifier` adapter resolves stable zone IDs.
+Custom channels use normalized names; transient local channel numbers never
+become policy keys. Unknown zone IDs need no new code or name mapping.
+
+Authenticated guardians poll every 20 seconds. Correlated, generation-bound
+`channel-list` requests fetch one name/key row per page. A revision detects
+changes during paging; the guardian replaces its transient list only after
+receiving a complete matching snapshot. Revocation or generation changes clear
+the cached list. Permissions displays joined channels with separate read/send
+actions; Activity adds their names to the dropdown, and captured history stores
+readable labels for unfamiliar zone IDs within the existing bounded channel field.
+Both clients need this version to provide inventory replies.
+
+Mocked runtime tests cover silent channels, arbitrary zone IDs, custom names,
+join/leave refresh, exact permission enforcement, and revoked cache cleanup.
+Widget tests exercise named rows and both permission actions. Full checks and
+packaging do not establish real-client rendering or two-account delivery; those
+still require in-game verification.

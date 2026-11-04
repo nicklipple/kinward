@@ -391,6 +391,10 @@ function ns.FamilyReceive(endpoint, peer, wire, now, friends)
     if not ns.FamilyCanDeliver(endpoint, peer, fields[4]) then
         return false, "unauthorized"
     end
+    if kind == "channel-list" and #fields == 7 then
+        local inventory = ns.ChannelInventoryReply(endpoint, fields)
+        return inventory ~= nil, "channels", inventory
+    end
     if kind == "pairing-pending" and #fields == 5 then
         local proposal = endpoint.proposal
         local pending = proposal

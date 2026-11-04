@@ -190,6 +190,7 @@ local function reply(t, peer, wire)
             and fields[2] ~= "snapshot"
             and fields[2] ~= "requests"
             and fields[2] ~= "pairing-candidate"
+            and fields[2] ~= "channels"
             and fields[2] ~= "history-batch"
         )
     then
@@ -212,7 +213,9 @@ local function reply(t, peer, wire)
                 return false
             end
             local accepted, result
-            if fields[2] == "pairing-candidate" and item.kind == "pairing-pending" then
+            if fields[2] == "channels" and item.kind == "channel-list" then
+                accepted, result = ns.AcceptChannelPage(t, peer, fields, item), "channels"
+            elseif fields[2] == "pairing-candidate" and item.kind == "pairing-pending" then
                 accepted = ns.AcceptGuardianCandidate(t, peer, fields, item)
                 result = "pairing-candidate"
             elseif fields[2] == "history-batch" and item.kind == "history" then
@@ -385,6 +388,7 @@ local function reply(t, peer, wire)
                 or result == "guardian-removed"
                 or result == "stopped"
                 or result == "requests"
+                or result == "channels"
                 or result == "history-batch"
                 or result == "request-denied"
             )
@@ -517,6 +521,7 @@ function ns.TransportReceive(t, peer, packet)
         or fields[2] == "setting"
         or fields[2] == "requests"
         or fields[2] == "pairing-candidate"
+        or fields[2] == "channels"
         or fields[2] == "history-batch"
         or (fields[2] == "snapshot" and #fields ~= 7)
     then
@@ -571,7 +576,7 @@ function ns.TransportTick(t)
                 or (not item.reply and item.kind ~= "pair" and item.kind ~= "sync" and item.kind ~= "guardian-request" and item.kind ~= "guardian-accept" and item.kind ~= "guardian-decline" and (not child or child.generation ~= item.generation))
                 or (
                     item.reply
-                    and (item.kind == "state" or item.kind == "setting" or item.kind == "snapshot" or item.kind == "requests" or item.kind == "pairing-candidate" or item.kind == "history-batch")
+                    and (item.kind == "state" or item.kind == "setting" or item.kind == "snapshot" or item.kind == "requests" or item.kind == "pairing-candidate" or item.kind == "history-batch" or item.kind == "channels")
                     and not ns.CanControl(t.family.profile, item.peer, item.generation)
                 )
             then

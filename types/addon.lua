@@ -551,3 +551,22 @@ SLASH_KINWARDSIM1 = "/kinwardsim"
 
 ---@class KinwardContext
 ---@field bnetAccounts? table<string, boolean> Current engine-verified account-only identities.
+
+---@class KinwardNamespace
+---@field HistoryChannel fun(channel: string, name: unknown): string
+---@field HistoryChannelBase fun(channel: string): string
+---@field HistoryChannelLabel fun(channel: string): string
+
+---@class KinwardFamily
+---@field channels? fun(): string[][]
+---@field channelSignature? string
+---@field channelVersion? number
+---@class KinwardTransport
+---@field joinedChannels? table<string, string[][]>
+---@field channelPages? table<string, {revision: string, rows: string[][], cursor: number}>
+---@field channelGenerations? table<string, string>
+---@field nextChannelPoll? number
+---@class KinwardNamespace
+---@field ChannelInventoryReply fun(f: KinwardFamily, fields: string[]): string?
+---@field AcceptChannelPage fun(t: KinwardTransport, peer: string, fields: string[], item: KinwardDelivery): boolean
+---@field PollChannels fun(t: KinwardTransport)

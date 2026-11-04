@@ -204,7 +204,7 @@ function ns.NewWoWChat(profile, io)
         if not info or not canaccessvalue(info.zoneChannelID) then
             return "channel:unknown"
         end
-        return ns.PublicChannelKey(name, info.zoneChannelID)
+        return ns.PublicChannelKey(name, info.zoneChannelID), name
     end
     local function filter(
         _,
@@ -237,6 +237,9 @@ function ns.NewWoWChat(profile, io)
                     and ns.PublicChannelKey(baseName, zone)
                 or "channel:unknown"
         end
+        local historyChannel = event == "CHAT_MSG_CHANNEL"
+                and ns.HistoryChannel(channel, canaccessvalue(baseName) and baseName or nil)
+            or channel
         local senderIdentity = channel == "bnet" and bnetIdentity(bnSender) or identity(sender)
         local allowed = ns.ChatDecision(chat, channel, "read", senderIdentity, line)
         local selfKey = io.selfCharacter and io.selfCharacter()
@@ -248,7 +251,7 @@ function ns.NewWoWChat(profile, io)
         if channel ~= "whisper" and channel ~= "bnet" and (not selfKey or not senderIdentity) then
             ns.CaptureRead(
                 chat,
-                channel,
+                historyChannel,
                 nil,
                 nil,
                 allowed,
@@ -263,9 +266,16 @@ function ns.NewWoWChat(profile, io)
             and senderIdentity
             and senderIdentity.character == selfKey
         then
-            ns.CaptureOutput(chat, channel, nil, accessibleBody(text), line)
+            ns.CaptureOutput(chat, historyChannel, nil, accessibleBody(text), line)
         else
-            ns.CaptureRead(chat, channel, senderIdentity, accessibleBody(text), allowed, line)
+            ns.CaptureRead(
+                chat,
+                historyChannel,
+                senderIdentity,
+                accessibleBody(text),
+                allowed,
+                line
+            )
         end
         if chat.prompt and chat.prompt ~= previousPrompt then
             if io.prompt then
@@ -288,12 +298,19 @@ function ns.NewWoWChat(profile, io)
         end
         local accessible = canaccessvalue(chatType)
         local channel = accessible and sends[chatType] or "other"
+        local channelName
         if accessible and chatType == "CHANNEL" then
-            channel = channelTarget(target)
+            channel, channelName = channelTarget(target)
         end
         local recipient = channel == "whisper" and identity(target) or nil
         local allowed = ns.ChatDecision(chat, channel or "unknown", "send", recipient)
-        ns.CaptureSend(chat, channel or "unknown", recipient, accessibleBody(text), allowed)
+        ns.CaptureSend(
+            chat,
+            ns.HistoryChannel(channel or "unknown", channelName),
+            recipient,
+            accessibleBody(text),
+            allowed
+        )
         if not allowed then
             local now = GetServerTime()
             if now >= nextNotice then

@@ -926,4 +926,45 @@ test(
     end
 )
 
+test("joined channel rows show exact names and send separate permissions", function()
+    withWidgets(function(ui)
+        local n = paired()
+        local d = n.dashboards.parent
+        d.transport.joinedChannels = {
+            child = {
+                { "channel:zone:987", "Silent Visitors" },
+                { "channel:custom:family", "Family" },
+            },
+        }
+        ns.ShowDashboard(d)
+        local caption
+        for _, control in ipairs(ui.frames) do
+            if ui.visible(control) then
+                assert(control.value ~= "Other public" and control.value ~= "Custom channels")
+                if control.value == "Silent Visitors" then
+                    caption = control
+                end
+            end
+        end
+        assert(caption)
+        local clicked = 0
+        for _, control in ipairs(ui.frames) do
+            if
+                ui.visible(control)
+                and control.value == "Allow"
+                and control.parent == caption.parent
+                and control.y == caption.y + 5
+            then
+                control.scripts.OnClick(control)
+                clicked = clicked + 1
+            end
+        end
+        assert(clicked == 2)
+        advance(n)
+        assert(ns.DashboardPermission(d, "child", "channel:zone:987", "read") == "Allowed")
+        assert(ns.DashboardPermission(d, "child", "channel:zone:987", "send") == "Allowed")
+        assert(ns.DashboardPermission(d, "child", "channel:custom:family", "read") == "Blocked")
+    end)
+end)
+
 print(string.format("%d phase 4 tests passed (Lua %s)", passed, _VERSION))

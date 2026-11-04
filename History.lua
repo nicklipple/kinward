@@ -463,6 +463,7 @@ function ns.HistoryView(profile, peer, filters, now)
             (
                 not filters.channel
                 or r.channel == filters.channel
+                or ns.HistoryChannelBase(r.channel) == filters.channel
                 or ns.ChannelCategory(r.channel) == filters.channel
             )
             and (not filters.direction or r.direction == filters.direction)
