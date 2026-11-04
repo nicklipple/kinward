@@ -38,8 +38,9 @@ local outcomes = {
 
 ---@param record KinwardHistoryRecord
 ---@param inventory? string[][]
+---@param childName? string
 ---@return string
-local function chatLine(record, inventory)
+local function chatLine(record, inventory, childName)
     local base = ns.HistoryChannelBase(record.channel)
     local spec = chatChannels[base] or { ns.HistoryChannelLabel(record.channel), "ffffcc66" }
     for _, channel in ipairs(inventory or {}) do
@@ -51,8 +52,13 @@ local function chatLine(record, inventory)
     local who = record.character ~= "" and record.character
         or record.account ~= "" and record.account
         or "Unknown identity"
+    local outgoing = record.direction == "send"
+    local whisper = base == "whisper" or base == "bnet"
+    if outgoing and not whisper then
+        who = childName or "Child"
+    end
     local prefix = record.disposition == "gap" and ""
-        or ((record.direction == "send" and "To " or "") .. "[" .. chatText(who) .. "]: ")
+        or ((outgoing and whisper and "To " or "") .. "[" .. chatText(who) .. "]: ")
     local suffix = (record.truncated and " |cffaaaaaa[Text truncated]|r" or "")
         .. (
             record.endedAt > record.time
@@ -263,7 +269,8 @@ function ns.NewActivityPanel(d, activity, widgets)
                 end
                 lines[#lines + 1] = chatLine(
                     record,
-                    t and t.joinedChannels and t.joinedChannels[d.selectedChild or ""]
+                    t and t.joinedChannels and t.joinedChannels[d.selectedChild or ""],
+                    d.selectedChild
                 )
             end
             historyText:SetText(

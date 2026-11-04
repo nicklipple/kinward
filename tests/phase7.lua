@@ -866,6 +866,9 @@ test("Activity renders escaped chat lines with explicit outcomes in chronologica
         "whisper",
         "blocked"
     )
+    append(n, "SENT-PARTY", "party", "attempted", nil, "send", "")
+    append(n, "SENT-WHISPER", "whisper", "attempted", nil, "send", "recipient-realm")
+    append(n, "SENT-BNET", "bnet", "attempted", nil, "send", "recipient-account")
     fetchHistory(n)
     withWidgets(function(ui)
         ns.ShowDashboard(n.dashboards.parent)
@@ -877,6 +880,10 @@ test("Activity renders escaped chat lines with explicit outcomes in chronologica
             end
         end
         assert(text)
+        assert(text:find("[Party] [child]: SENT-PARTY", 1, true))
+        assert(text:find("[Whisper] To [recipient-realm]: SENT-WHISPER", 1, true))
+        assert(text:find("[Battle.net] To [recipient-account]: SENT-BNET", 1, true))
+        assert(not text:find("[Party] To ", 1, true))
         assert(text:find("[Party]", 1, true))
         assert(text:find("[Whisper]", 1, true))
         assert(text:find("[Blocked incoming]", 1, true))
